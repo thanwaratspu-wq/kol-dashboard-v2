@@ -45,9 +45,24 @@ export default function Report() {
     return (
         <div className="report-page">
             <header className="page-head"><h1>Report Analysis</h1></header>
+            {/* หัวรายงานเฉพาะตอนพิมพ์ — บนกระดาษไม่มี sidebar/แท็บ จึงต้องบอกบริบทให้ครบในตัวเอง */}
+            <div className="print-only rpt-print-head">
+                <div className="rpt-print-title">Report Analysis — {c.name}</div>
+                <div className="rpt-print-meta">
+                    ช่วงแคมเปญ: {c.start_date || '—'} ถึง {c.end_date || '—'}
+                    {' · '}แพลตฟอร์ม: {plat || 'ทั้งหมด'}
+                    {' · '}ออกรายงาน: {new Date().toLocaleString('th-TH')}
+                </div>
+            </div>
+
             <div className="rpt-campaign">
                 <span>Campaign: <strong>{c.name}</strong></span>
-                <button className="btn-ghost" onClick={() => navigate('/budget')}><Icon name="back" size={15} /> Back to List</button>
+                <div className="rpt-actions">
+                    <button className="btn-ghost" onClick={() => window.print()} title="เปิดหน้าต่างพิมพ์ แล้วเลือกปลายทางเป็น Save as PDF">
+                        <Icon name="download" size={15} /> บันทึกเป็น PDF
+                    </button>
+                    <button className="btn-ghost" onClick={() => navigate('/budget')}><Icon name="back" size={15} /> Back to List</button>
+                </div>
             </div>
 
             {/* แถบสรุปบน */}

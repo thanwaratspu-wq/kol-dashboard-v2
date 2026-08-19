@@ -1684,3 +1684,60 @@ a { text-decoration: none; color: inherit; }
     .sidebar { width: 100%; height: auto; position: static; }
     .content { padding: 20px; }
 }
+
+/* ===================== บันทึกเป็น PDF / พิมพ์ ===================== */
+.rpt-actions { display: flex; gap: 8px; align-items: center; }
+
+/* บล็อกที่โผล่เฉพาะตอนพิมพ์ (บนจอซ่อนไว้) */
+.print-only { display: none; }
+.rpt-print-head { margin-bottom: 10px; padding-bottom: 7px; border-bottom: 2px solid var(--mint); }
+.rpt-print-title { font-size: 15.5px; font-weight: 800; letter-spacing: -0.2px; }
+.rpt-print-meta { font-size: 9.5px; color: #555; margin-top: 3px; }
+
+@media print {
+    @page { size: A4 landscape; margin: 10mm; }
+
+    .print-only { display: block; }
+
+    /* ปิด zoom 1.2 ของหน้าจอ ไม่งั้นเนื้อหาล้นกระดาษ */
+    :root { --app-zoom: 1; }
+    body {
+        zoom: 1 !important;
+        background: #fff !important;
+        background-image: none !important;
+    }
+
+    /* คงสีพื้น/กราเดียนต์ของการ์ดไว้เวลาพิมพ์ */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    /* ซ่อนทุกอย่างที่ไม่ใช่เนื้อรายงาน */
+    .sidebar,
+    .page-head,
+    .rpt-campaign,
+    .rpt-plat-tabs,
+    .rpt-actions,
+    .btn-ghost { display: none !important; }
+
+    .layout { display: block !important; min-height: 0 !important; }
+    .content { padding: 0 !important; }
+
+    /* ห้ามตัดการ์ด/แถวกลางหน้ากระดาษ */
+    .panel,
+    .rpt-topbar,
+    .rpt-two-col > *,
+    .rank-item,
+    .rpt-eng,
+    .rpt-dist { break-inside: avoid; page-break-inside: avoid; }
+
+    .panel { box-shadow: none !important; border: 1px solid #d7e3dd !important; }
+
+    /* ตารางยาวข้ามหน้า — ให้หัวตารางซ้ำทุกหน้า */
+    thead { display: table-header-group; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+
+    /* ลิงก์บนกระดาษไม่ต้องมีสี/ขีดเส้นใต้ */
+    a, a.work-link { text-decoration: none !important; color: inherit !important; }
+
+    /* ปุ่มพับ/ดูเพิ่ม ไม่มีความหมายบนกระดาษ */
+    .prod-codes-more, .prodchip-more { display: none !important; }
+}
