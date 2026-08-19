@@ -1,0 +1,473 @@
+import { useEffect, useRef, useState } from 'react';
+import { api, uploadFile } from '../api/client.js';
+import { useAuth } from '../auth/AuthContext.jsx';
+import Icon from './Icon.jsx';
+import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
+
+const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+// กลุ่ม Target สำหรับการยิงแอด (ตามช่วงอายุ)
+const CONTENT_TYPES = ['Review', 'Sale'];
+const CODE_EXPIRE_OPTS = [7, 30, 60, 180, 365]; // จำนวนวัน Gencode ให้เลือก
+const GROUP_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
+const TIERS = ['Nano 1k - 10k', 'Micro 10k - 100k', 'Macro 100k - 1M', 'Mega 1M+'];
+// จำนวน KOL รวมของกลุ่ม = ผลรวมทุกแถว allocation (Platform/Tier/จำนวน)
+const groupTotalKol = g => (g.allocations || []).reduce((s, a) => s + (Number(a.kols) || 0), 0);
+// สร้าง "กลุ่มโฆษณา" เริ่มต้นจากข้อมูลเดิม (รองรับ ad_groups / products[{name,target}] / products[string])
+// เลือกแบบ checkbox ติ๊กได้หลายตัวพร้อมกัน (ใช้ทั้งสินค้าและกลุ่ม Target)
+// options = [{ value, label }]
+function CheckMultiSelect({ options, selected, onToggle, disabled, disabledText, placeholder, emptyText, allLabel = 'ทั้งหมด' }) {
+    const [open, setOpen] = useState(false);
+    if (disabled) return <div className="product-picker pms-disabled">{disabledText}</div>;
+    const allSelected = options.length > 0 && options.every(o => selected.includes(o.value));
+    // เลือก/ยกเลิกทุกตัวในครั้งเดียว (toggle เฉพาะตัวที่ต่างจากสถานะที่ต้องการ)
+    const selectAll = () => options.forEach(o => { if (!selected.includes(o.value)) onToggle(o.value); });
+    const clearAll = () => options.forEach(o => { if (selected.includes(o.value)) onToggle(o.value); });
+    return (
+        <div className="pms">
+            <button type="button" className="product-picker pms-toggle" onClick={() => setOpen(o => !o)}>
+                <span>{placeholder} {selected.length > 0 ? `(เลือกแล้ว ${selected.length})` : '(ติ๊กได้หลายตัว)'}</span>
+                <span className="pms-caret">{open ? '▲' : '▼'}</span>
+            </button>
+            {open && (
+                <div className="pms-panel">
+                    {options.length === 0 ? (
+                        <div className="pms-empty">{emptyText}</div>
+                    ) : (
+                        <>
+                            <button type="button" className="pms-all" onClick={allSelected ? clearAll : selectAll}>
+                                {allSelected ? `✕ ยกเลิก${allLabel}` : `☑ เลือก${allLabel}`}
+                            </button>
+                            {options.map(o => (
+                                <label className={'pms-item' + (selected.includes(o.value) ? ' on' : '')} key={o.value}>
+                                    <input type="checkbox" checked={selected.includes(o.value)} onChange={() => onToggle(o.value)} />
+                                    <span>{o.label}</span>
+                                </label>
+                            ))}
+                        </>
+                    )}
+                    <button type="button" className="pms-done" onClick={() => setOpen(false)}>เสร็จ ({selected.length})</button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+const emptyAlloc = () => ({ tier: '', kols: '' });   // Platform ย้ายไปอยู่ระดับกลุ่มแล้ว (allocation เหลือแค่ Tier/จำนวน)
+const genKey = () => 'g' + Math.random().toString(36).slice(2, 9);
+const newGroup = (over = {}) => ({ key: genKey(), platform: '', concept: '', target: [], content_type: '', products: [], allocations: [emptyAlloc()], brief: '', draft: '', budget: '', code_expire: 60, ...over });
+// แปลงข้อมูลเดิม → allocations แบบใหม่ (เหลือ tier/kols) + คืน platform ของกลุ่ม
+function migAllocations(g) {
+    if (Array.isArray(g.allocations) && g.allocations.length) return g.allocations.map(a => ({ tier: a.tier || '', kols: a.kols ?? '' }));
+    if (g.tier_kols && Object.keys(g.tier_kols).length) {
+        const al = Object.entries(g.tier_kols).filter(([, v]) => Number(v) > 0).map(([tier, v]) => ({ tier, kols: v }));
+        if (al.length) return al;
+    }
+    if (g.tier && g.kol_count) return [{ tier: g.tier, kols: g.kol_count }];
+    return [emptyAlloc()];
+}
+// platform ของกลุ่ม (ข้อมูลเดิม: จาก g.platform หรือ allocation แถวแรก)
+const migPlatform = g => g.platform || (Array.isArray(g.allocations) && g.allocations[0] ? g.allocations[0].platform : '') || '';
+function initGroups(editing) {
+    if (Array.isArray(editing?.ad_groups) && editing.ad_groups.length) {
+        // ข้อมูลเดิมงบเก็บต่อ Platform — ถ้ากลุ่มยังไม่มี budget และ Platform นั้นมีกลุ่มเดียว ให้สืบค่าจากงบ Platform
+        const pb = editing.platform_budgets || {};
+        const groupsPerPlat = {};
+        editing.ad_groups.forEach(g => { const p = migPlatform(g); groupsPerPlat[p] = (groupsPerPlat[p] || 0) + 1; });
+        return editing.ad_groups.map(g => {
+            const plat = migPlatform(g);
+            const seededBudget = (g.budget != null && g.budget !== '') ? g.budget : ((groupsPerPlat[plat] === 1 && Number(pb[plat]) > 0) ? pb[plat] : '');
+            return newGroup({ key: g.key || genKey(), platform: plat, concept: g.concept || '', target: asTargetArray(g.target), content_type: g.content_type || '', brief: g.brief || '', products: [...(g.products || [])], allocations: migAllocations(g), budget: seededBudget, code_expire: Number(g.code_expire) || 60 });
+        });
+    }
+    const prods = editing?.products || [];
+    if (!prods.length) return [];
+    if (typeof prods[0] === 'string') return [newGroup({ products: [...prods] })];
+    const byT = {};
+    prods.forEach(p => { const t = p.target || ''; (byT[t] = byT[t] || []).push(p.name); });
+    return Object.entries(byT).map(([t, names]) => newGroup({ target: t ? [t] : [], products: names }));
+}
+const STATUS = [
+    { value: 'Draft', label: 'ร่าง' },
+    { value: 'Active', label: 'กำลังทำ' },
+    { value: 'Completed', label: 'เสร็จสิ้น' },
+    { value: 'Cancelled', label: 'ยกเลิก' }
+];
+
+// ฟอร์มสร้าง/แก้ไขแคมเปญ (ใช้ร่วมกันทั้งหน้า Projects และ ProjectDetail)
+export default function ProjectForm({ editing, onClose, onSaved }) {
+    const { user } = useAuth();
+    const isEdit = !!editing;
+    const [form, setForm] = useState({
+        name: editing?.name || '',
+        brand: editing?.brand || '',
+        objective: editing?.objective || '',
+        brief_link: editing?.brief_link || '',
+        owner: editing?.owner || user?.full_name || user?.username || '',
+        budget: editing?.budget ?? '',
+        kol_target: editing?.kol_target ?? '',
+        start_date: editing?.start_date || '',
+        end_date: editing?.end_date || '',
+        status: editing?.status || 'Draft'
+    });
+    const [adGroups, setAdGroups] = useState(() => initGroups(editing));
+    const [platforms, setPlatforms] = useState(() => [...new Set(initGroups(editing).map(g => g.platform).filter(Boolean))]);
+    const [briefFile, setBriefFile] = useState(null);
+    const [productBriefs, setProductBriefs] = useState(() => editing?.product_briefs || {}); // { code: { link, file } }
+    const [pbFiles, setPbFiles] = useState({}); // code -> File (รออัปโหลดหลังบันทึก)
+    const setPbLink = (code, link) => { setProductBriefs(m => ({ ...m, [code]: { ...(m[code] || {}), link } })); setPbFiles(f => { const n = { ...f }; delete n[code]; return n; }); };
+    const setPbFile = (code, file) => { setPbFiles(f => ({ ...f, [code]: file })); setProductBriefs(m => ({ ...m, [code]: { ...(m[code] || {}), link: '' } })); };
+    // บรีฟหลักต่อ Platform
+    const [platformBriefs, setPlatformBriefs] = useState(() => editing?.platform_briefs || {}); // { platform: { link, file } }
+    const [pfBriefFiles, setPfBriefFiles] = useState({}); // platform -> File (รออัปโหลด)
+    const setPfBriefLink = (pf, link) => { setPlatformBriefs(m => ({ ...m, [pf]: { ...(m[pf] || {}), link } })); setPfBriefFiles(f => { const n = { ...f }; delete n[pf]; return n; }); };
+    const setPfBriefFile = (pf, file) => { setPfBriefFiles(f => ({ ...f, [pf]: file })); setPlatformBriefs(m => ({ ...m, [pf]: { ...(m[pf] || {}), link: '' } })); };
+    const briefInputRef = useRef(null);
+    const [owners, setOwners] = useState([]);
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        api('/users/options').then(res => setOwners(res.data)).catch(() => {});
+    }, []);
+
+    function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
+    // Platform ชั้นบน
+    const addPlatform = p => { if (p) setPlatforms(ps => ps.includes(p) ? ps : [...ps, p]); };
+    const removePlatform = p => { setPlatforms(ps => ps.filter(x => x !== p)); setAdGroups(g => g.filter(x => x.platform !== p)); };
+    const addGroupToPlatform = p => setAdGroups(g => [...g, newGroup({ platform: p })]);
+    const addAllocation = i => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: [...x.allocations, emptyAlloc()] } : x));
+    const removeAllocation = (i, ai) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: x.allocations.length > 1 ? x.allocations.filter((_, j) => j !== ai) : x.allocations } : x));
+    const setAllocation = (i, ai, k, v) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: x.allocations.map((a, j) => j === ai ? { ...a, [k]: v } : a) } : x));
+    const removeGroup = i => setAdGroups(g => g.filter((_, idx) => idx !== i));
+    const setGroupField = (i, k, v) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, [k]: v } : x));
+    function addProductToGroup(i, code) {
+        if (!code) return;
+        setAdGroups(g => g.map((x, idx) => {
+            if (idx !== i || x.products.includes(code)) return x;
+            return { ...x, products: [...x.products, code] };
+        }));
+    }
+    const removeProductFromGroup = (i, name) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, products: x.products.filter(n => n !== name) } : x));
+    // ติ๊กเลือก/เอาออก สินค้าในกลุ่ม (สำหรับ checkbox หลายตัว)
+    const toggleProductInGroup = (i, code) => setAdGroups(g => g.map((x, idx) => idx !== i ? x : ({ ...x, products: x.products.includes(code) ? x.products.filter(c => c !== code) : [...x.products, code] })));
+    // เลือกกลุ่ม Target ได้หลายอัน (array)
+    const addTargetToGroup = (i, t) => { if (!t) return; setAdGroups(g => g.map((x, idx) => (idx === i && !asTargetArray(x.target).includes(t)) ? { ...x, target: [...asTargetArray(x.target), t] } : x)); };
+    const removeTargetFromGroup = (i, t) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, target: asTargetArray(x.target).filter(v => v !== t) } : x));
+    const toggleTargetInGroup = (i, t) => setAdGroups(g => g.map((x, idx) => idx !== i ? x : ({ ...x, target: asTargetArray(x.target).includes(t) ? asTargetArray(x.target).filter(v => v !== t) : [...asTargetArray(x.target), t] })));
+
+    // ตรวจว่ากรอกครบทุกช่องไหม (คืน list ช่องที่ยังไม่ครบ)
+    function validate() {
+        const m = [];
+        if (!form.name.trim()) m.push('ชื่อแคมเปญ');
+        if (!form.brand) m.push('Brand');
+        if (!form.objective.trim()) m.push('รายละเอียดแคมเปญ');
+        const briefOk = platforms.length > 0 && platforms.every(pf => {
+            const cur = platformBriefs[pf] || {};
+            return (cur.link && cur.link.trim()) || cur.file || pfBriefFiles[pf];
+        });
+        if (!briefOk) m.push('บรีฟหลักของแต่ละ Platform');
+        const groupsOk = adGroups.length > 0 && adGroups.every(g =>
+            g.platform && g.products.length && g.content_type &&
+            (targetsForProducts(g.products).length === 0 || asTargetArray(g.target).length > 0) &&
+            g.allocations.length > 0 && g.allocations.every(a => a.tier && (Number(a.kols) || 0) > 0));
+        if (!groupsOk) m.push('เลือก Platform + เพิ่มกลุ่มสินค้า (สินค้า/Target/Content Type + ทุกแถว Tier/จำนวน KOL ให้ครบ)');
+        if (!form.owner) m.push('Owner');
+        if (!(adGroups.length > 0 && adGroups.every(g => Number(String(g.budget).replace(/\D/g, '')) > 0))) m.push('Budget ของแต่ละกลุ่มสินค้า');
+        if (!form.start_date) m.push('วันเริ่ม (Start)');
+        if (!form.end_date) m.push('วันสิ้นสุด (End)');
+        return m;
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        if (!isEdit) {
+            const m = validate();
+            if (m.length) { setError('กรุณากรอกให้ครบทุกช่อง: ' + m.join(', ')); return; }
+        }
+        setError(''); setSaving(true);
+        try {
+            // เก็บเฉพาะกลุ่มที่มีสินค้า + ทำ products แบบ flat ไว้ให้หน้าอื่นใช้ (เช่น Agency)
+            const groups = adGroups.filter(g => g.products.length && g.platform).map(g => {
+                const allocations = g.allocations.filter(a => a.tier).map(a => ({ platform: g.platform, tier: a.tier, kols: Number(a.kols) || 0 }));
+                return { key: g.key || genKey(), platform: g.platform, concept: g.concept || null, target: asTargetArray(g.target), content_type: g.content_type || null, brief: (g.brief && g.brief.trim()) ? g.brief.trim() : null, products: g.products, allocations, kol_count: allocations.reduce((s, a) => s + a.kols, 0), budget: Number(String(g.budget).replace(/\D/g, '')) || 0, code_expire: Number(g.code_expire) || 60 };
+            });
+            const flatProducts = groups.flatMap(g => g.products);
+            const totalKol = groups.reduce((s, g) => s + g.kol_count, 0); // KOL เป้าหมายรวม = ผลรวมทุกกลุ่ม
+            // บรีฟต่อสินค้า (เฉพาะสินค้าที่ยังใช้อยู่) — เก็บ link + คง file meta เดิม (ไฟล์ใหม่จะอัปหลังบันทึก)
+            const usedCodes = [...new Set(flatProducts)];
+            const product_briefs = {};
+            usedCodes.forEach(code => {
+                const cur = productBriefs[code] || {};
+                product_briefs[code] = { link: (cur.link && cur.link.trim()) ? cur.link.trim() : null, file: cur.file || null };
+            });
+            // บรีฟหลักต่อ Platform (เฉพาะ Platform ที่ใช้อยู่)
+            const platform_briefs = {};
+            platforms.forEach(pf => {
+                const cur = platformBriefs[pf] || {};
+                platform_briefs[pf] = { link: (cur.link && cur.link.trim()) ? cur.link.trim() : null, file: cur.file || null };
+            });
+            // งบต่อ Platform = ผลรวมงบของกลุ่มใน Platform นั้น (ไว้ให้หน้าอื่นที่ยังดูแบบต่อ Platform ใช้)
+            const platform_budgets = {};
+            groups.forEach(g => { platform_budgets[g.platform] = (platform_budgets[g.platform] || 0) + (Number(g.budget) || 0); });
+            const totalBudget = groups.reduce((s, g) => s + (Number(g.budget) || 0), 0); // งบรวม = ผลรวมทุกกลุ่ม
+            const body = {
+                name: form.name,
+                brand: form.brand,
+                objective: form.objective || null,
+                products: flatProducts,
+                ad_groups: groups,
+                product_briefs,
+                platform_briefs,
+                platform_budgets,
+                owner: form.owner || null,
+                budget: totalBudget,
+                kol_target: totalKol,
+                start_date: form.start_date || null,
+                end_date: form.end_date || null
+            };
+            if (isEdit) body.status = form.status;
+
+            let saved;
+            if (isEdit) {
+                const res = await api(`/projects/${editing.id}`, { method: 'PUT', body });
+                saved = res.data;
+            } else {
+                const res = await api('/projects', { method: 'POST', body });
+                saved = res.data;
+            }
+            const pid = isEdit ? editing.id : saved.id;
+            // อัปโหลดไฟล์บรีฟหลักต่อ Platform (ที่เพิ่งเลือกใหม่)
+            for (const [pf, file] of Object.entries(pfBriefFiles)) {
+                try { await uploadFile(`/projects/${pid}/platform-brief/${encodeURIComponent(pf)}/file`, file); }
+                catch (e) { alert(`อัปโหลดบรีฟ ${pf} ไม่สำเร็จ: ${e.message}`); }
+            }
+            // อัปโหลดไฟล์บรีฟต่อสินค้า (ที่เพิ่งเลือกใหม่)
+            for (const [code, file] of Object.entries(pbFiles)) {
+                try { await uploadFile(`/projects/${pid}/product-brief/${code}/file`, file); }
+                catch (e) { alert(`อัปโหลดบรีฟสินค้า ${code} ไม่สำเร็จ: ${e.message}`); }
+            }
+            onSaved(saved);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    const missing = validate();
+    const canSubmit = isEdit || missing.length === 0;
+
+    return (
+        <div className="modal-backdrop" onClick={onClose}>
+            <div className="modal wide" onClick={e => e.stopPropagation()}>
+                <div className="modal-head">
+                    <h3>{isEdit ? 'แก้ไขแคมเปญ' : 'สร้างแคมเปญใหม่'}</h3>
+                    <button type="button" className="modal-x" onClick={onClose}>×</button>
+                </div>
+                {error && <div className="alert-error">{error}</div>}
+                <form onSubmit={handleSubmit}>
+                    <div className="field">
+                        <label>ชื่อแคมเปญ *</label>
+                        <input value={form.name} onChange={e => update('name', e.target.value)} required autoFocus />
+                    </div>
+
+                    <div className="field-row">
+                        <div className="field">
+                            <label>Brand</label>
+                            <select value={form.brand} onChange={e => update('brand', e.target.value)}>
+                                <option value="">เลือกแบรนด์</option>
+                                {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="field">
+                        <label>รายละเอียดแคมเปญ</label>
+                        <textarea rows="3" value={form.objective}
+                            onChange={e => update('objective', e.target.value)}
+                            placeholder="รายละเอียดของแคมเปญ..." />
+                    </div>
+
+                    {/* สินค้า & กลุ่มโฆษณา — Platform ชั้นบน (มีบรีฟหลักต่อ Platform) */}
+                    <div className="field">
+                        <label>สินค้า &amp; กลุ่มโฆษณา <span className="dash-section-sub">เลือก Platform ก่อน แล้วเพิ่มกลุ่มสินค้าใต้แต่ละ Platform</span></label>
+                        <div className="adgroup-editor">
+                            {platforms.length === 0 && <p className="dash-section-sub" style={{ padding: '4px 2px' }}>เลือก Platform ด้านล่างก่อน แล้วจึงเพิ่มกลุ่มสินค้า</p>}
+                            {platforms.map(pf => (
+                                <div className="platform-block" key={pf}>
+                                    <div className="platform-block-head">
+                                        <span className="platform-block-name">📱 {pf}</span>
+                                        <button type="button" className="adgroup-rm" title="ลบ Platform นี้" onClick={() => removePlatform(pf)}>×</button>
+                                    </div>
+                                    {/* บรีฟหลักของ Platform นี้ (ลิงก์ หรือ ไฟล์) */}
+                                    {(() => {
+                                        const cur = platformBriefs[pf] || {};
+                                        const pendingFile = pfBriefFiles[pf];
+                                        return (
+                                            <div className="platform-brief">
+                                                <span className="platform-brief-lbl">📄 บรีฟหลักของ {pf}</span>
+                                                <div className="pbrief-row">
+                                                    <input className="pbrief-link" type="url" value={cur.link || ''} onChange={e => setPfBriefLink(pf, e.target.value)}
+                                                        placeholder="ลิงก์บรีฟ (https://...)" disabled={!!pendingFile} />
+                                                    <label className={'pbrief-file-btn' + ((pendingFile || cur.file) ? ' has-file' : '')}>
+                                                        <Icon name="upload" size={14} /> {pendingFile ? pendingFile.name : (cur.file ? cur.file.original : 'อัปไฟล์')}
+                                                        <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx"
+                                                            onChange={e => { if (e.target.files[0]) setPfBriefFile(pf, e.target.files[0]); }} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                    {adGroups.map((g, i) => {
+                                        if (g.platform !== pf) return null;
+                                        const gTargets = targetsForProducts(g.products);
+                                        const gTargetSel = asTargetArray(g.target);
+                                        const targetOpts = [...new Set([...gTargets, ...gTargetSel])];
+                                        const targetAvail = targetOpts.filter(t => !gTargetSel.includes(t));
+                                        const gNo = adGroups.filter((x, xi) => x.platform === pf && xi <= i).length;
+                                        return (
+                                        <div className="adgroup-block" key={g.key || i}>
+                                            <div className="adgroup-head">
+                                                <span className="adgroup-no">กลุ่มที่ {gNo}</span>
+                                                <input className="adgroup-concept" value={g.concept} placeholder="Concept ของกลุ่ม..."
+                                                    onChange={e => setGroupField(i, 'concept', e.target.value)} />
+                                                <button type="button" className="adgroup-rm" title="ลบกลุ่ม" onClick={() => removeGroup(i)}>×</button>
+                                            </div>
+                                            <CheckMultiSelect
+                                                disabled={!form.brand}
+                                                disabledText="— เลือกแบรนด์ก่อน —"
+                                                placeholder="+ เลือกสินค้า"
+                                                emptyText="ไม่มีสินค้าในแบรนด์นี้"
+                                                allLabel="ทุกสินค้า"
+                                                options={productsByBrand(form.brand).map(p => ({ value: p.code, label: `${p.code} - ${p.name}` }))}
+                                                selected={g.products}
+                                                onToggle={code => toggleProductInGroup(i, code)}
+                                            />
+                                            {g.products.length > 0 && (
+                                                <div className="prodchip-wrap" style={{ marginBottom: 8 }}>
+                                                    {g.products.map(code => (
+                                                        <span className="prodchip removable" key={code} title={productLabel(code)}>
+                                                            {code}<button type="button" onClick={() => removeProductFromGroup(i, code)} title="เอาออก">×</button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {/* กลุ่ม Target — เลือกได้หลายอัน (ชิปที่เลือกขึ้นด้านล่างช่องเลือก) */}
+                                            <div className="target-multi">
+                                                <CheckMultiSelect
+                                                    disabled={g.products.length === 0 || targetOpts.length === 0}
+                                                    disabledText={g.products.length === 0 ? '— เลือกสินค้าก่อน —' : '— สินค้านี้ยังไม่มี Target —'}
+                                                    placeholder="+ เลือกกลุ่ม Target"
+                                                    emptyText="สินค้านี้ยังไม่มี Target"
+                                                    options={targetOpts.map(t => ({ value: t, label: t }))}
+                                                    selected={gTargetSel}
+                                                    onToggle={t => toggleTargetInGroup(i, t)}
+                                                />
+                                                {gTargetSel.length > 0 && (
+                                                    <div className="chip-list target-chips">
+                                                        {gTargetSel.map(t => (
+                                                            <span className="chip-target lg" key={t}>🎯 {t}
+                                                                <button type="button" onClick={() => removeTargetFromGroup(i, t)}>×</button>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="target-multi">
+                                                <select className="target-add" value={g.content_type} onChange={e => setGroupField(i, 'content_type', e.target.value)}>
+                                                    <option value="">— Content Type —</option>
+                                                    {CONTENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                            {/* จำนวนวัน Gencode (โค้ดใช้ได้กี่วัน) */}
+                                            <label className="platform-budget platform-budget-row">
+                                                <span>⏳ จำนวนวัน Gencode</span>
+                                                <select value={g.code_expire || 60} onChange={e => setGroupField(i, 'code_expire', Number(e.target.value))}>
+                                                    {CODE_EXPIRE_OPTS.map(d => <option key={d} value={d}>{d} Days</option>)}
+                                                </select>
+                                            </label>
+                                            {/* บรีฟเฉพาะกลุ่มนี้ */}
+                                            <div className="target-multi">
+                                                <input className="target-add" type="url" value={g.brief} onChange={e => setGroupField(i, 'brief', e.target.value)}
+                                                    placeholder="📄 บรีฟเฉพาะกลุ่มนี้ (ลิงก์ https://...) — เว้นว่างได้ถ้าใช้บรีฟหลัก" />
+                                            </div>
+                                            {/* งบของกลุ่มสินค้านี้ */}
+                                            <label className="platform-budget platform-budget-row">
+                                                <span>💰 Budget กลุ่มนี้</span>
+                                                <input type="text" inputMode="numeric"
+                                                    value={(g.budget != null && g.budget !== '') ? Number(String(g.budget).replace(/\D/g, '') || 0).toLocaleString('en-US') : ''}
+                                                    onChange={e => setGroupField(i, 'budget', e.target.value.replace(/\D/g, ''))}
+                                                    placeholder="0" />
+                                                <span className="pb-baht">฿</span>
+                                            </label>
+
+                                            {/* Tier · จำนวน KOL (Platform มาจากด้านบนแล้ว) */}
+                                            <div className="alloc-section">
+                                                <div className="alloc-head alloc-head-2"><span>Tier</span><span>จำนวน KOL</span><span /></div>
+                                                {g.allocations.map((a, ai) => (
+                                                    <div className="alloc-row alloc-row-2" key={ai}>
+                                                        <select value={a.tier} onChange={e => setAllocation(i, ai, 'tier', e.target.value)}>
+                                                            <option value="">— Tier —</option>
+                                                            {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                                                        </select>
+                                                        <input type="number" min="0" placeholder="0" value={a.kols} onChange={e => setAllocation(i, ai, 'kols', e.target.value)} />
+                                                        <button type="button" className="alloc-rm" title="ลบแถว" onClick={() => removeAllocation(i, ai)}>×</button>
+                                                    </div>
+                                                ))}
+                                                <button type="button" className="alloc-add" onClick={() => addAllocation(i)}>
+                                                    <Icon name="plus" size={14} /> เพิ่ม Tier / จำนวน
+                                                </button>
+                                            </div>
+                                        </div>
+                                        );
+                                    })}
+                                    <button type="button" className="adgroup-add" onClick={() => addGroupToPlatform(pf)}>
+                                        <Icon name="plus" size={15} /> เพิ่มกลุ่มสินค้า
+                                    </button>
+                                </div>
+                            ))}
+                            {GROUP_PLATFORMS.filter(p => !platforms.includes(p)).length > 0 && (
+                                <select className="product-picker platform-picker" value="" onChange={e => { addPlatform(e.target.value); e.target.value = ''; }}>
+                                    <option value="">{platforms.length ? '+ เลือก Platform เพิ่ม' : '+ เลือก Platform'}</option>
+                                    {GROUP_PLATFORMS.filter(p => !platforms.includes(p)).map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="field">
+                        <label>Owner</label>
+                        <select value={form.owner} onChange={e => update('owner', e.target.value)}>
+                            <option value="">— เลือก —</option>
+                            {owners.map(o => <option key={o.id} value={o.name}>{o.name}</option>)}
+                            {form.owner && !owners.some(o => o.name === form.owner) && (
+                                <option value={form.owner}>{form.owner}</option>
+                            )}
+                        </select>
+                    </div>
+
+                    <div className="field-row">
+                        <div className="field">
+                            <label>Period (Start)</label>
+                            <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} />
+                        </div>
+                        <div className="field">
+                            <label>Period (End)</label>
+                            <input type="date" value={form.end_date} onChange={e => update('end_date', e.target.value)} />
+                        </div>
+                    </div>
+
+                    {!isEdit && missing.length > 0 && (
+                        <div className="form-missing-hint">⚠️ กรุณากรอกให้ครบก่อนบันทึก: {missing.join(' · ')}</div>
+                    )}
+                    <div className="modal-actions">
+                        <button type="button" className="btn-ghost" onClick={onClose}>ยกเลิก</button>
+                        <button type="submit" className="btn-primary" disabled={saving || !canSubmit}>
+                            {saving ? 'กำลังบันทึก...' : (isEdit ? 'บันทึกการแก้ไข' : 'สร้างแคมเปญ')}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}

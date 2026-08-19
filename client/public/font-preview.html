@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ตัวอย่างฟอนต์ · KOL Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Kanit:wght@400;500;600;700&family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Anuphan:wght@400;500;600;700&family=Bai+Jamjuree:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mint:#10b981; --mint-dark:#059669; --text:#1c3b32; --muted:#7d968c;
+    --border:#e2f0ea; --bg:#f2fbf7; --bg-soft:#e3f7ee;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text); padding:28px 20px 60px;
+    background-image:radial-gradient(1000px 480px at 100% -8%, rgba(52,211,153,.14), transparent 60%);
+    font-family:'Sarabun',system-ui,sans-serif;
+  }
+  .wrap{max-width:960px;margin:0 auto}
+  .head{margin-bottom:22px}
+  .head h1{font-size:26px;font-weight:700;color:var(--mint-dark)}
+  .head p{color:var(--muted);font-size:15px;margin-top:4px}
+  .grid{display:flex;flex-direction:column;gap:16px}
+  .card{background:#fff;border:1px solid var(--border);border-left:5px solid var(--mint);border-radius:16px;padding:20px 22px;box-shadow:0 10px 30px rgba(16,133,100,.06)}
+  .card-top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--border)}
+  .fname{font-size:20px;font-weight:700}
+  .ftag{font-size:13px;color:var(--muted);font-family:'Sarabun',sans-serif}
+  .demo h2{font-size:24px;font-weight:700;margin-bottom:6px}
+  .demo .lead{font-size:16px;font-weight:600;color:var(--mint-dark);margin-bottom:8px}
+  .demo p{font-size:15px;line-height:1.7;color:#2b4a41;margin-bottom:12px}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .stat{background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:110px}
+  .stat b{display:block;font-size:22px;font-weight:700;color:var(--mint-dark)}
+  .stat span{font-size:12.5px;color:var(--muted);font-family:'Sarabun',sans-serif}
+  .chip{display:inline-block;background:#eef4ff;color:#3b5ba5;font-weight:700;font-size:13px;padding:4px 10px;border-radius:8px;margin-right:6px}
+  .note{margin-top:26px;padding:14px 16px;background:#fff;border:1px dashed var(--mint);border-radius:12px;color:#2b4a41;font-family:'Sarabun',sans-serif;font-size:14px;line-height:1.7}
+
+  /* fonts */
+  .f-prompt{font-family:'Prompt',sans-serif}
+  .f-kanit{font-family:'Kanit',sans-serif}
+  .f-mitr{font-family:'Mitr',sans-serif}
+  .f-plex{font-family:'IBM Plex Sans Thai',sans-serif}
+  .f-anuphan{font-family:'Anuphan',sans-serif}
+  .f-baijam{font-family:'Bai Jamjuree',sans-serif}
+  .f-chakra{font-family:'Chakra Petch',sans-serif}
+  .f-noto{font-family:'Noto Sans Thai',sans-serif}
+  .f-sarabun{font-family:'Sarabun',sans-serif}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>ตัวอย่างฟอนต์สำหรับ KOL Central Dashboard</h1>
+    <p>เลื่อนดูแต่ละแบบ แล้วบอกชื่อฟอนต์ที่ชอบได้เลย เดี๋ยวเปลี่ยนให้ทั้งระบบ · ตัวเลข ฿ และภาษาไทยเรนเดอร์จริงทุกแบบ</p>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="note">
+    💡 <b>คำแนะนำสั้นๆ:</b> สำหรับ Dashboard ที่ดูโปรและทันสมัยแต่ยังอ่านสบาย แนะนำ <b>Prompt</b>, <b>IBM Plex Sans Thai</b> หรือ <b>Anuphan</b> ·
+    ถ้าอยากมีคาแรกเตอร์เด่นขึ้นลอง <b>Kanit</b> (เข้ม) หรือ <b>Mitr</b> (โค้งมนเป็นมิตร) ·
+    ถ้าชอบแนวเทค/ล้ำ ลอง <b>Bai Jamjuree</b> หรือ <b>Chakra Petch</b>
+  </div>
+</div>
+<script>
+  const FONTS = [
+    ['Prompt','f-prompt','โมเดิร์น เรขาคณิต ป็อป — ยอดนิยมสำหรับ UI ไทย ดูสะอาดทันสมัย'],
+    ['IBM Plex Sans Thai','f-plex','โปรเฟสชันนัล มีเอกลักษณ์ อ่านง่าย เหมาะงานข้อมูล/แดชบอร์ด'],
+    ['Anuphan','f-anuphan','คลีน โมเดิร์น เรียบหรู เส้นสวย ดูพรีเมียม'],
+    ['Kanit','f-kanit','เข้ม ทันสมัย มีพลัง เหมาะเป็นหัวข้อ/ตัวเลขเด่น'],
+    ['Mitr','f-mitr','โค้งมนเป็นมิตร ดูซอฟต์ทันสมัย'],
+    ['Bai Jamjuree','f-baijam','แนวเทค เหลี่ยมนิดๆ ทันสมัย ดูจริงจัง'],
+    ['Chakra Petch','f-chakra','ล้ำ/ฟิวเจอร์ เหลี่ยมชัด เท่ มีคาแรกเตอร์'],
+    ['Noto Sans Thai','f-noto','เรียบ นิ่ง เป็นกลาง อ่านง่ายมาก'],
+    ['Sarabun (ปัจจุบัน)','f-sarabun','ฟอนต์ที่ใช้อยู่ตอนนี้ — เรียบ อ่านง่าย มาตรฐานราชการ'],
+  ];
+  const grid = document.getElementById('grid');
+  grid.innerHTML = FONTS.map(([name,cls,tag])=>`
+    <div class="card ${cls}">
+      <div class="card-top">
+        <span class="fname">${name}</span>
+        <span class="ftag">${tag}</span>
+      </div>
+      <div class="demo">
+        <h2>KOL Central Dashboard</h2>
+        <div class="lead">สรุปภาพรวมแคมเปญ · ค่าใช้จ่ายของ KOL</div>
+        <p>ระบบจัดการ KOL และแคมเปญการตลาด — ติดตามดราฟงาน ยิงแอด และงบประมาณได้ในที่เดียว จำนวนวัน Gencode และวันยิงแอดอัปเดตอัตโนมัติ</p>
+        <div class="stats">
+          <div class="stat"><b>฿131,363</b><span>ค่าใช้จ่าย KOL</span></div>
+          <div class="stat"><b>40</b><span>จำนวน KOL</span></div>
+          <div class="stat"><b>60 Days</b><span>Gencode</span></div>
+          <div style="margin-left:4px"><span class="chip">BTA1-01</span><span class="chip">TikTok</span><span class="chip">Micro 10k–100k</span></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+</script>
+</body>
+</html>

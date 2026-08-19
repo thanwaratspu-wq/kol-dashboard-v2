@@ -1,0 +1,9 @@
+node_modules/
+.env
+dist/
+*.log
+
+# ข้อมูล dev แบบไฟล์ (มี hash รหัสผ่าน) — ไม่ commit
+server/data/
+# ไฟล์ที่อัปโหลด (ใบเสนอราคา/ใบแจ้งหนี้)
+server/uploads/

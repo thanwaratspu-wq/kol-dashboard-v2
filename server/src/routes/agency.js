@@ -1,0 +1,225 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const store = require('../store');
+
+const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
+const router = express.Router();
+
+// บรีฟต่อสินค้า เฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตามขอบเขตสินค้าของลิงก์)
+function scopedProductBriefs(project, link) {
+    const pb = project.product_briefs || {};
+    const out = {};
+    Object.keys(pb).forEach(code => {
+        if (!link.scoped || !link.products.length || link.products.includes(code)) {
+            out[code] = { link: pb[code].link || null, file: pb[code].file ? { original: pb[code].file.original } : null };
+        }
+    });
+    return out;
+}
+// บรีฟหลักต่อ Platform เฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตามขอบเขต Platform ของลิงก์)
+function scopedPlatformBriefs(project, link) {
+    const pb = project.platform_briefs || {};
+    const out = {};
+    Object.keys(pb).forEach(pf => {
+        if (!link.scoped || !link.platforms.length || link.platforms.includes(pf)) {
+            out[pf] = { link: pb[pf].link || null, file: pb[pf].file ? { original: pb[pf].file.original } : null };
+        }
+    });
+    return out;
+}
+// งบต่อ Platform เฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตามขอบเขต Platform ของลิงก์)
+function scopedPlatformBudgets(project, link) {
+    const pb = project.platform_budgets || {};
+    const out = {};
+    Object.keys(pb).forEach(pf => {
+        if (!link.scoped || !link.platforms.length || link.platforms.includes(pf)) {
+            out[pf] = Number(pb[pf]) || 0;
+        }
+    });
+    return out;
+}
+// หมายเหตุ: เส้นทางนี้ "สาธารณะ" (ไม่ต้องล็อกอิน) — ให้ Agency เข้าผ่านลิงก์ token
+
+// เฉพาะ submissions ที่เจ้านี้เห็นได้ (ลิงก์แยกต่อเจ้า = เห็นเฉพาะ agency_token ตัวเอง / ลิงก์รวมเดิม = เห็นทั้งหมด)
+function scopeSubs(subs, link) {
+    return link.scoped ? subs.filter(s => s.agency_token === link.token) : subs;
+}
+// platform ของกลุ่ม (รองรับข้อมูลเดิมที่เก็บ platform ไว้ใน allocation)
+function groupPlatforms(g) {
+    const set = new Set();
+    if (g.platform) set.add(g.platform);
+    (g.allocations || []).forEach(a => { if (a.platform) set.add(a.platform); });
+    return [...set];
+}
+// กลุ่มโฆษณาเฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตาม Platform + สินค้าของลิงก์)
+function scopedAdGroups(project, link) {
+    const groups = project.ad_groups || [];
+    if (!link.scoped) return groups;   // ลิงก์รวมเดิม = เห็นทุกกลุ่ม
+    return groups.filter(g => {
+        const gPlats = groupPlatforms(g);
+        const platOk = !link.platforms.length || gPlats.length === 0 || gPlats.some(p => link.platforms.includes(p));
+        const prodOk = !link.products.length || (g.products || []).some(c => link.products.includes(c));
+        return platOk && prodOk;
+    });
+}
+
+// GET /api/agency/:token — ข้อมูลแคมเปญ + รายชื่อที่ส่งไปแล้ว (พร้อมสถานะคัดเลือก)
+router.get('/:token', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project, link } = resolved;
+        const subs = scopeSubs(await store.submissions.listByProject(project.id), link);
+        res.json({
+            status: 'success',
+            data: {
+                project_name: project.name,
+                brand: project.brand,
+                objective: project.objective,
+                brief_link: project.brief_link,
+                products: project.products || [],
+                ad_groups: scopedAdGroups(project, link),
+                kol_target: project.kol_target || 0,
+                agency_name: link.name,        // ชื่อเจ้าของลิงก์ (ถ้าเป็นลิงก์แยกต่อเจ้า)
+                agency_scope: { products: link.products || [], platforms: link.platforms || [], kol_count: link.kol_count || 0 }, // ขอบเขตงานที่รับผิดชอบ
+                product_briefs: scopedProductBriefs(project, link),   // บรีฟต่อสินค้า เฉพาะของเจ้านี้
+                platform_briefs: scopedPlatformBriefs(project, link), // บรีฟหลักต่อ Platform เฉพาะของเจ้านี้
+                platform_budgets: scopedPlatformBudgets(project, link), // งบต่อ Platform เฉพาะของเจ้านี้
+                submissions: subs
+            }
+        });
+    } catch (err) { next(err); }
+});
+
+// POST /api/agency/:token — Agency ส่งรายชื่อ KOL
+router.post('/:token', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project, link } = resolved;
+        const { account_name, followers, platform, product, budget, agency, link_account, group_key, tier } = req.body;
+        if (!account_name) return res.status(400).json({ status: 'error', message: 'กรุณาระบุชื่อ Account' });
+        // จำนวนวัน Gencode เริ่มต้น = ตามที่ตั้งไว้ในกลุ่มสินค้านั้น (ถ้ามี)
+        const grp = (project.ad_groups || []).find(g => g.key === group_key);
+        const data = await store.submissions.add({
+            project_id: project.id,
+            account_name,
+            followers: Number(followers) || 0,
+            platform: platform || null,
+            product: product || null,
+            budget: Number(budget) || 0,
+            agency: agency || link.name || null,        // ค่าเริ่มต้น = ชื่อเจ้าของลิงก์
+            link_account: link_account || null,
+            group_key: group_key || null,
+            tier: tier || null,
+            code_expire: grp ? (Number(grp.code_expire) || 60) : 60,
+            agency_token: link.scoped ? link.token : null   // ติดตราเจ้าของ (เฉพาะลิงก์แยกต่อเจ้า)
+        });
+        res.status(201).json({ status: 'success', data });
+    } catch (err) { next(err); }
+});
+
+// PUT /api/agency/:token/submissions/:subId — Agency อัปเดตดราฟงาน (ลิงค์งาน/Gencode/feedback/approve)
+router.put('/:token/submissions/:subId', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project, link } = resolved;
+        // ลิงก์แยกต่อเจ้า: แก้ได้เฉพาะ KOL ของตัวเอง
+        if (link.scoped) {
+            const existing = await store.submissions.get(req.params.subId);
+            if (!existing || existing.project_id !== project.id || existing.agency_token !== link.token) {
+                return res.status(403).json({ status: 'error', message: 'ไม่มีสิทธิ์แก้ไขรายการนี้' });
+            }
+        }
+        const {
+            account_name, followers, platform, product, agency, budget, link_account,
+            draft_link, draft_link2, draft_link3, draft_link4, draft_link5,
+            gencode, feedback, feedback2, feedback3, feedback4, feedback5,
+            approved, draft_status, post_url, post_date, id_post, code_expire
+        } = req.body;
+        if (account_name !== undefined && !String(account_name).trim()) {
+            return res.status(400).json({ status: 'error', message: 'กรุณาระบุชื่อ Account' });
+        }
+        const data = await store.submissions.update(req.params.subId, project.id, {
+            account_name: account_name !== undefined ? String(account_name).trim() : undefined,
+            followers: followers !== undefined ? (Number(followers) || 0) : undefined,
+            platform, product, agency,
+            budget: budget !== undefined ? (Number(budget) || 0) : undefined,
+            link_account,
+            draft_link, draft_link2, draft_link3, draft_link4, draft_link5,
+            gencode, feedback, feedback2, feedback3, feedback4, feedback5,
+            approved, draft_status, post_url, post_date, id_post, code_expire
+        });
+        if (!data) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
+        res.json({ status: 'success', data });
+    } catch (err) { next(err); }
+});
+
+// POST /api/agency/:token/batch — Agency ส่งรายชื่อหลายคนพร้อมกัน
+router.post('/:token/batch', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project, link } = resolved;
+        const items = Array.isArray(req.body.items) ? req.body.items : [];
+        const valid = items.filter(it => it && it.account_name && String(it.account_name).trim());
+        if (valid.length === 0) return res.status(400).json({ status: 'error', message: 'กรุณากรอกอย่างน้อย 1 รายชื่อ' });
+
+        const added = [];
+        for (const it of valid) {
+            added.push(await store.submissions.add({
+                project_id: project.id,
+                account_name: String(it.account_name).trim(),
+                followers: Number(it.followers) || 0,
+                platform: it.platform || null,
+                product: it.product || null,
+                budget: Number(it.budget) || 0,
+                agency: link.name || null,
+                agency_token: link.scoped ? link.token : null
+            }));
+        }
+        res.status(201).json({ status: 'success', count: added.length, data: added });
+    } catch (err) { next(err); }
+});
+
+// GET /api/agency/:token/product-brief/:code/file — เอเจนซี่เปิดไฟล์บรีฟสินค้า (สาธารณะ, จำกัดตามขอบเขต)
+router.get('/:token/product-brief/:code/file', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้อง' });
+        const { project, link } = resolved;
+        const code = req.params.code;
+        if (link.scoped && link.products.length && !link.products.includes(code)) {
+            return res.status(403).json({ status: 'error', message: 'ไม่มีสิทธิ์เปิดไฟล์นี้' });
+        }
+        const pb = project.product_briefs || {};
+        const meta = pb[code] && pb[code].file;
+        if (!meta) return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์บรีฟ' });
+        const filePath = path.join(UPLOAD_DIR, meta.filename);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(filePath);
+    } catch (err) { next(err); }
+});
+
+// GET /api/agency/:token/platform-brief/:platform/file — เอเจนซี่เปิดไฟล์บรีฟ Platform (สาธารณะ, จำกัดตามขอบเขต)
+router.get('/:token/platform-brief/:platform/file', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้อง' });
+        const { project, link } = resolved;
+        const pf = req.params.platform;
+        if (link.scoped && link.platforms.length && !link.platforms.includes(pf)) {
+            return res.status(403).json({ status: 'error', message: 'ไม่มีสิทธิ์เปิดไฟล์นี้' });
+        }
+        const pb = project.platform_briefs || {};
+        const meta = pb[pf] && pb[pf].file;
+        if (!meta) return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์บรีฟ' });
+        const filePath = path.join(UPLOAD_DIR, meta.filename);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(filePath);
+    } catch (err) { next(err); }
+});
+
+module.exports = router;
