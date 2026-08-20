@@ -57,6 +57,14 @@ function inMonth(p, ym) {
     if (!s) return false;
     return s <= mEnd && e >= mStart;
 }
+// project อยู่ในปีที่เลือกไหม (ใช้เกณฑ์เดียวกับเดือน คือช่วงวันแคมเปญคาบเกี่ยวกับปีนั้น)
+function inYear(p, y) {
+    if (!y) return true;
+    const s = p.start_date || p.end_date;
+    const e = p.end_date || p.start_date;
+    if (!s) return false;
+    return s <= `${y}-12-31` && e >= `${y}-01-01`;
+}
 function matchSearch(p, q) {
     const s = q.trim().toLowerCase();
     if (!s) return true;
@@ -69,6 +77,7 @@ export default function Projects() {
     const [projects, setProjects] = useState([]);
     const [brand, setBrand] = useState('');
     const [search, setSearch] = useState('');
+    const [year, setYear] = useState('');   // '' = ทุกปี
     const [month, setMonth] = useState(''); // '' = ทุกเดือน
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -88,13 +97,21 @@ export default function Projects() {
         navigate(`/projects/${project.id}`);
     }
 
-    // กรองด้วย search + เดือน ก่อน แล้วค่อยกรองแบรนด์ (นับจำนวนในชิปแบรนด์ให้ตรงกับตัวกรองปัจจุบัน)
-    const base = projects.filter(p => inMonth(p, month) && matchSearch(p, search));
+    // กรองด้วย search + ปี + เดือน ก่อน แล้วค่อยกรองแบรนด์ (นับจำนวนในชิปแบรนด์ให้ตรงกับตัวกรองปัจจุบัน)
+    const base = projects.filter(p => inYear(p, year) && inMonth(p, month) && matchSearch(p, search));
     const shown = brand ? base.filter(p => p.brand === brand) : base;
     const countOf = b => base.filter(p => p.brand === b).length;
-    const hasFilter = brand || search.trim() || month;
-    // รายการเดือนสำหรับ dropdown (จากช่วงวันของทุก project)
-    const monthOptions = [...new Set(projects.flatMap(monthsOfProject))].sort().reverse();
+    const hasFilter = brand || search.trim() || month || year;
+    // รายการเดือนสำหรับ dropdown (จากช่วงวันของทุก project) — ถ้าเลือกปีไว้ ให้เหลือเฉพาะเดือนของปีนั้น
+    const allMonths = [...new Set(projects.flatMap(monthsOfProject))].sort().reverse();
+    const monthOptions = year ? allMonths.filter(mm => mm.startsWith(year + '-')) : allMonths;
+    const yearOptions = [...new Set(allMonths.map(mm => mm.slice(0, 4)))].sort().reverse();
+
+    // เปลี่ยนปีแล้วถ้าเดือนที่เลือกอยู่ไม่ใช่ของปีนั้น ให้ล้างเดือนทิ้ง กันเลือกขัดกันจนไม่เหลือผลลัพธ์
+    function changeYear(y) {
+        setYear(y);
+        if (y && month && !month.startsWith(y + '-')) setMonth('');
+    }
 
     // การ์ด Project 1 ใบ
     const renderCard = (p) => (
@@ -136,6 +153,10 @@ export default function Projects() {
                     <input className="search-input" placeholder="ค้นหาชื่อ Project / แบรนด์ / owner..."
                         value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
+                <select className="campaign-select" value={year} onChange={e => changeYear(e.target.value)}>
+                    <option value="">ทุกปี</option>
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
                 <select className="campaign-select" value={month} onChange={e => setMonth(e.target.value)}>
                     <option value="">ทุกเดือน</option>
                     {monthOptions.map(mm => <option key={mm} value={mm}>{monthLabel(mm)}</option>)}
@@ -163,7 +184,7 @@ export default function Projects() {
             ) : shown.length === 0 ? (
                 <div className="panel empty-state">
                     <div className="empty-emoji">🔍</div>
-                    <p>{hasFilter ? 'ไม่พบ Project ตามเงื่อนไขที่เลือก — ลองปรับคำค้นหา แบรนด์ หรือเดือน' : 'ยังไม่มี Project — เริ่มสร้าง Project แรกของทีมได้เลย'}</p>
+                    <p>{hasFilter ? 'ไม่พบ Project ตามเงื่อนไขที่เลือก — ลองปรับคำค้นหา แบรนด์ ปี หรือเดือน' : 'ยังไม่มี Project — เริ่มสร้าง Project แรกของทีมได้เลย'}</p>
                     <button className="btn-primary" onClick={() => setShowForm(true)}>
                         <Icon name="plus" size={17} /> สร้าง Project
                     </button>
