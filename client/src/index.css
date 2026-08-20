@@ -20,7 +20,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Prompt', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    /* Anuphan หนักสุดที่ 700 — จุดที่สั่ง font-weight 800 เบราว์เซอร์ clamp ลง 700 ให้เอง ไม่เกิดตัวหนาปลอม */
+    font-family: 'Anuphan', 'Segoe UI', system-ui, -apple-system, sans-serif;
     zoom: var(--app-zoom);   /* ขยายทั้งหน้าให้ตัวหนังสือใหญ่-อ่านง่ายขึ้น */
     background-color: var(--bg);
     background-image:
