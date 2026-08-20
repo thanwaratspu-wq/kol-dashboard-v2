@@ -93,6 +93,7 @@ export default function Kols() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [brand, setBrand] = useState('');
+    const [platform, setPlatform] = useState('');
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [product, setProduct] = useState('');
@@ -110,9 +111,12 @@ export default function Kols() {
         return ys.sort((a, b) => b - a);
     }, [rows]);
     const products = useMemo(() => [...new Set(rows.map(r => r.product).filter(Boolean))].sort(), [rows]);
+    // เอาเฉพาะแพลตฟอร์มที่มีข้อมูลจริง จะได้ไม่ขึ้นปุ่มที่กดแล้วว่างเปล่า
+    const platforms = useMemo(() => [...new Set(rows.map(r => r.platform).filter(Boolean))].sort(), [rows]);
 
     const shown = rows.filter(r =>
         (!brand || r.brand === brand) &&
+        (!platform || r.platform === platform) &&
         (!year || String(r.year) === String(year)) &&
         (!month || r.month === month) &&
         (!product || r.product === product));
@@ -179,6 +183,13 @@ export default function Kols() {
                 <button className={'brand-chip' + (brand === '' ? ' active' : '')} onClick={() => setBrand('')}>All Brands</button>
                 {BRANDS.map(b => (
                     <button key={b} className={'brand-chip' + (brand === b ? ' active' : '')} onClick={() => setBrand(b)}>{b}</button>
+                ))}
+            </div>
+            <div className="brand-filter">
+                <span className="brand-filter-label">Platform:</span>
+                <button className={'brand-chip' + (platform === '' ? ' active' : '')} onClick={() => setPlatform('')}>All Platforms</button>
+                {platforms.map(p => (
+                    <button key={p} className={'brand-chip' + (platform === p ? ' active' : '')} onClick={() => setPlatform(p)}>{p}</button>
                 ))}
             </div>
 
