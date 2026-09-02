@@ -457,6 +457,10 @@ a { text-decoration: none; color: inherit; }
 .rank-main b { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
 .rank-sub { font-size: 11px; color: var(--muted); }
 .rank-metric { flex-shrink: 0; font-weight: 800; font-size: 13.5px; color: var(--mint-dark); background: var(--bg-soft); padding: 5px 12px; border-radius: 9px; }
+/* ตัวเลขผลงานรายคน ใต้ชื่อในการ์ดอันดับ Top KOL */
+.rank-stats { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 5px; }
+.rank-stats span { display: inline-flex; align-items: baseline; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.rank-stats i { font-style: normal; font-size: 10px; font-weight: 600; color: var(--muted); }
 .rank-empty { color: var(--muted); font-size: 12px; padding: 10px 4px; }
 
 /* ===== Content Performance report sections ===== */

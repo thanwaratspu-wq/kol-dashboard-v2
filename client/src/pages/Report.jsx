@@ -209,8 +209,14 @@ export default function Report() {
                                 <div className="rank-main">
                                     <b>{k.name}</b>
                                     <span className="rank-sub">{k.platform || '—'} · {k.performance === 'Good' ? '⭐ Good' : (k.posted ? 'ลงงานแล้ว' : 'ยังไม่ลงงาน')}{k.boosted ? ' · ยิงแอดแล้ว' : ''}</span>
+                                    <div className="rank-stats">
+                                        <span><i>วิว</i>{fmtV(k.views)}</span>
+                                        <span><i>ไลก์</i>{fmtV(k.likes)}</span>
+                                        <span><i>คอมเมนต์</i>{fmtV(k.comments)}</span>
+                                        <span><i>เซฟ</i>{fmtV(k.saves)}</span>
+                                        <span><i>แชร์</i>{fmtV(k.shares)}</span>
+                                    </div>
                                 </div>
-                                <div className="rank-metric">{Number(k.reach) > 0 ? `CPM ${B(k.cpm)}` : (k.posted ? '✓ โพสต์' : '—')}</div>
                             </div>
                         ))}
                     </div>
