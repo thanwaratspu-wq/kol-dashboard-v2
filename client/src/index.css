@@ -621,8 +621,6 @@ a { text-decoration: none; color: inherit; }
 .rpt-cost.c-pink { background: linear-gradient(135deg,#fbeafd,#f3d9fb); color: #a21caf; }
 .rpt-cost.c-green { background: linear-gradient(135deg,#d9fbe9,#c3f5da); color: #059669; }
 .rpt-cost.c-blue { background: linear-gradient(135deg,#e3edff,#d3e2fe); color: #2563eb; }
-.rpt-cost-total { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); font-weight: 700; color: #45605a; }
-.rpt-cost-total-v { font-size: 19.5px; font-weight: 800; color: #e0562b; }
 
 .perf-good { display: inline-flex; align-items: center; gap: 4px; color: var(--mint-dark); font-weight: 700; font-size: 12.5px; }
 .perf-improve { display: inline-flex; align-items: center; gap: 4px; color: #e0562b; font-weight: 700; font-size: 12.5px; }

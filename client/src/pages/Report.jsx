@@ -195,10 +195,6 @@ export default function Report() {
                     <div className="rpt-cost c-green"><div className="rpt-cost-k">AVG CPM / คน</div><div className="rpt-cost-v">{B(d.cost.avg_cpm)}</div><div className="rpt-cost-sub">เฉลี่ย Cost per 1K Reach ต่อคน</div></div>
                     <div className="rpt-cost c-blue"><div className="rpt-cost-k">AVG CPE / คน</div><div className="rpt-cost-v">{B(d.cost.avg_cpe)}</div><div className="rpt-cost-sub">เฉลี่ย Cost per Engagement ต่อคน</div></div>
                 </div>
-                <div className="rpt-cost-total">
-                    <span>📋 รวมค่าใช้จ่ายทั้งหมด (KOL + Ads)</span>
-                    <span className="rpt-cost-total-v">{B(d.cost.total)}</span>
-                </div>
             </div>
 
             {/* อันดับ Performance ดีที่สุด (ราย KOL + ราย Product) */}
