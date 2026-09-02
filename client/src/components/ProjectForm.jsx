@@ -129,7 +129,13 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
 
     function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
     // Platform ชั้นบน
-    const addPlatform = p => { if (p) setPlatforms(ps => ps.includes(p) ? ps : [...ps, p]); };
+    // เลือก Platform แล้วสร้างกลุ่มสินค้าแรกให้เลย ไม่ต้องกดเพิ่มเอง
+    // (ปุ่ม "เพิ่มกลุ่มสินค้า" ไว้ใช้ตอนอยากได้กลุ่มที่ 2 ขึ้นไป)
+    const addPlatform = p => {
+        if (!p) return;
+        setPlatforms(ps => ps.includes(p) ? ps : [...ps, p]);
+        setAdGroups(g => g.some(x => x.platform === p) ? g : [...g, newGroup({ platform: p })]);
+    };
     const removePlatform = p => { setPlatforms(ps => ps.filter(x => x !== p)); setAdGroups(g => g.filter(x => x.platform !== p)); };
     const addGroupToPlatform = p => setAdGroups(g => [...g, newGroup({ platform: p })]);
     const addAllocation = i => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: [...x.allocations, emptyAlloc()] } : x));
@@ -287,9 +293,9 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
 
                     {/* สินค้า & กลุ่มโฆษณา — Platform ชั้นบน (มีบรีฟหลักต่อ Platform) */}
                     <div className="field">
-                        <label>สินค้า &amp; กลุ่มโฆษณา <span className="dash-section-sub">เลือก Platform ก่อน แล้วเพิ่มกลุ่มสินค้าใต้แต่ละ Platform</span></label>
+                        <label>สินค้า &amp; กลุ่มโฆษณา <span className="dash-section-sub">เลือก Platform แล้วกลุ่มสินค้าแรกจะขึ้นให้เอง กดเพิ่มได้ถ้าต้องการหลายกลุ่ม</span></label>
                         <div className="adgroup-editor">
-                            {platforms.length === 0 && <p className="dash-section-sub" style={{ padding: '4px 2px' }}>เลือก Platform ด้านล่างก่อน แล้วจึงเพิ่มกลุ่มสินค้า</p>}
+                            {platforms.length === 0 && <p className="dash-section-sub" style={{ padding: '4px 2px' }}>เลือก Platform ด้านล่างก่อน</p>}
                             {platforms.map(pf => (
                                 <div className="platform-block" key={pf}>
                                     <div className="platform-block-head">
