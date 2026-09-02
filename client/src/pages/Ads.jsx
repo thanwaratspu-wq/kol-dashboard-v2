@@ -57,8 +57,6 @@ function CopyCode({ value }) {
 // แถวตาราง: อัปเดตข้อมูลแอดของโพสต์ 1 อัน (บันทึกเมื่อออกจากช่อง)
 function AdRow({ row, onSaved }) {
     const [adStatus, setAdStatus] = useState(row.ad_status || 'ยังไม่ยิง');
-    const [spend, setSpend] = useState(row.ad_spend || '');
-    const [reach, setReach] = useState(row.ad_reach || '');
     const [end, setEnd] = useState(row.ad_end || '');
     const [note, setNote] = useState(row.ad_note || '');
     const [saving, setSaving] = useState(false);
@@ -93,7 +91,6 @@ function AdRow({ row, onSaved }) {
         }
     }
 
-    const cpm = (Number(reach) > 0) ? Math.round((Number(spend) || 0) / (Number(reach) / 1000)) : 0;
     // ยิงแอดช้าไปกี่วันหลังวันลงคลิป (นับจาก Post Date → วันยิงแอด)
     const lateDays = (adStatus === 'ยิงแล้ว' && row.post_date && end) ? daysBetween(row.post_date, end) : null;
 
@@ -139,6 +136,8 @@ function AdRow({ row, onSaved }) {
                 <button type="button" className={'ads-status ' + (adStatus === 'ยิงแล้ว' ? 'done' : 'pending')} onClick={toggleStatus} disabled={saving}>
                     {adStatus === 'ยิงแล้ว' ? '✓ ยิงแล้ว' : 'ยังไม่ยิง'}
                 </button>
+                {/* ย้ายตัวบอกสถานะการบันทึกมาจากช่อง CPM ที่เอาออกไป */}
+                {saving ? <span className="proc-status">…</span> : saved ? <span className="proc-status ok">✓</span> : null}
             </div>
             {/* แก้เองไม่ได้ — ระบบลงวันที่ให้ตอนกดปุ่มสถานะเป็น "ยิงแล้ว" และล้างให้เมื่อกดกลับเป็น "ยังไม่ยิง" */}
             <div className="ads-cell">
@@ -152,13 +151,6 @@ function AdRow({ row, onSaved }) {
                     : lateDays <= 0
                         ? <span className="late-chip ontime" title="ยิงแอดในวันเดียวกับที่ลงคลิป">ตรงเวลา</span>
                         : <span className={'late-chip ' + (lateDays <= 3 ? 'warn' : 'bad')} title={`ยิงแอดช้ากว่าวันลงคลิป ${lateDays} วัน`}>ช้า {lateDays} วัน</span>}
-            </div>
-            <div className="ads-cell ads-cpm">
-                {cpm ? fmtMoney(cpm) : '—'}
-                {saving ? <span className="proc-status">…</span> : saved ? <span className="proc-status ok">✓</span> : null}
-            </div>
-            <div className="ads-cell ads-cpm">
-                <span className="muted">—</span>
             </div>
             <div className="ads-cell ads-note">
                 <input value={note} onChange={e => setNote(e.target.value)} onBlur={saveNote}
@@ -277,7 +269,7 @@ export default function Ads() {
                         <div className="ads-tbl">
                             <div className="ads-tbl-head">
                                 <span>KOL</span><span>แคมเปญ</span><span>PRODUCT</span><span>TARGET</span><span>CONTENT TYPE</span><span>โพสต์</span><span>GENCODE</span><span>ID POST</span><span>Post Date</span><span>สถานะ</span>
-                                <span>วันยิงแอด</span><span>ยิงช้า</span><span>CPM</span><span>CPE</span><span>หมายเหตุ</span>
+                                <span>วันยิงแอด</span><span>ยิงช้า</span><span>หมายเหตุ</span>
                             </div>
                             {rows.map(r => <AdRow key={r.sub_id} row={r} onSaved={load} />)}
                         </div>
