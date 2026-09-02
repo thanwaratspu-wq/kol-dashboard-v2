@@ -12,8 +12,18 @@ const BRANDS = ["Jula's Herb", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq
 (async () => {
     try {
         const username = process.env.ADMIN_USERNAME || 'admin';
-        const password = process.env.ADMIN_PASSWORD || 'admin1234';
         const fullName = process.env.ADMIN_FULLNAME || 'System Admin';
+
+        // ไม่มีรหัสสำรองแบบตายตัวแล้ว — บังคับให้ตั้งเองใน server/.env ก่อน seed
+        // ไม่งั้นทุกคนที่โคลน repo นี้จะรู้รหัส admin ทันที
+        const password = process.env.ADMIN_PASSWORD;
+        const memberPassword = process.env.MEMBER_PASSWORD;
+        if (!password || !memberPassword) {
+            console.error('❌ ยังไม่ได้ตั้งรหัสผ่านใน server/.env');
+            console.error('   ต้องมีทั้ง ADMIN_PASSWORD และ MEMBER_PASSWORD ก่อนรัน seed');
+            console.error('   ตั้งเป็นรหัสของตัวเอง อย่าใช้ค่าตัวอย่างจาก .env.example');
+            process.exit(1);
+        }
 
         if (await store.users.findByUsername(username)) {
             console.log(`ℹ️  ผู้ใช้ "${username}" มีอยู่แล้ว — ข้าม seed`);
@@ -28,9 +38,9 @@ const BRANDS = ["Jula's Herb", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq
         // ผู้ใช้
         const hash = await bcrypt.hash(password, 10);
         await store.users.create({ username, password_hash: hash, full_name: fullName, role: 'admin', team_id: adminTeam.id });
-        const m1 = await bcrypt.hash('member1234', 10);
+        const m1 = await bcrypt.hash(memberPassword, 10);
         await store.users.create({ username: 'member1', password_hash: m1, full_name: 'สมาชิก ทีม A', role: 'member', team_id: teamA.id });
-        const m2 = await bcrypt.hash('member1234', 10);
+        const m2 = await bcrypt.hash(memberPassword, 10);
         await store.users.create({ username: 'member2', password_hash: m2, full_name: 'สมาชิก ทีม B', role: 'member', team_id: teamB.id });
 
         // KOL ส่วนกลาง (หลายแพลตฟอร์ม)
@@ -73,9 +83,6 @@ const BRANDS = ["Jula's Herb", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq
         }
 
         console.log('✅ seed เสร็จสิ้น (ข้อมูลตัวอย่างครบทุกแบรนด์/แพลตฟอร์ม)');
-        console.log(`   admin   → ${username} / ${password}`);
-        console.log('   member1 → member1 / member1234 (Team A)');
-        console.log('   member2 → member2 / member1234 (Team B)');
         process.exit(0);
     } catch (err) {
         console.error('❌ seed ล้มเหลว:', err.message);

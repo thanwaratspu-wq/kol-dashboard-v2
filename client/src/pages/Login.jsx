@@ -66,7 +66,7 @@ export default function Login() {
                 </form>
 
                 <div className="login-hint">
-                    ทดลอง: admin / admin1234 &nbsp;·&nbsp; member1 / member1234
+                    ยังไม่มีบัญชี? ติดต่อผู้ดูแลระบบเพื่อขอ username และรหัสผ่าน
                 </div>
             </div>
         </div>

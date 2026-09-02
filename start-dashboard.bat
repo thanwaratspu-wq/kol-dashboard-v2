@@ -54,7 +54,7 @@ if errorlevel 1 (
 
 echo.
 echo   READY  ^>^>  http://localhost:5173
-echo   Login  ^>^>  admin / admin1234
+echo   Login  ^>^>  ask your admin for username / password
 echo.
 start "" "http://localhost:5173"
 echo   To stop: close the BACKEND and FRONTEND windows.

@@ -36,12 +36,13 @@ npm run dev      # เปิด server ที่ http://localhost:4000
 ```
 
 ## บัญชีเริ่มต้น (หลัง seed)
-| role   | username | password    | ทีม        |
-|--------|----------|-------------|------------|
-| admin  | admin    | admin1234   | Admin Team |
-| member | member1  | member1234  | Team A     |
+| role   | username | password                              | ทีม        |
+|--------|----------|---------------------------------------|------------|
+| admin  | admin    | ตั้งเองที่ `ADMIN_PASSWORD` ใน `server/.env` | Admin Team |
+| member | member1  | ตั้งเองตอน seed                          | Team A     |
 
-> ⚠️ เปลี่ยนรหัสผ่านและ `JWT_SECRET` ก่อนใช้งานจริง
+> ⚠️ ก่อน seed ให้ตั้ง `ADMIN_PASSWORD` และ `JWT_SECRET` ใน `server/.env` เป็นค่าของตัวเอง
+> อย่าใช้ค่าตัวอย่างจาก `.env.example` และเปลี่ยนรหัสผ่านทุกบัญชีก่อนเปิดใช้งานจริง
 
 ## API หลัก
 | Method | Path | สิทธิ์ | หน้าที่ |
