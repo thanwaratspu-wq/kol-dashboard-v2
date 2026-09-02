@@ -266,11 +266,6 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                 </div>
                 {error && <div className="alert-error">{error}</div>}
                 <form onSubmit={handleSubmit}>
-                    <div className="field">
-                        <label>ชื่อแคมเปญ *</label>
-                        <input value={form.name} onChange={e => update('name', e.target.value)} required autoFocus />
-                    </div>
-
                     <div className="field-row">
                         <div className="field">
                             <label>Brand</label>
@@ -279,6 +274,11 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                                 {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                         </div>
+                    </div>
+
+                    <div className="field">
+                        <label>ชื่อแคมเปญ *</label>
+                        <input value={form.name} onChange={e => update('name', e.target.value)} required autoFocus />
                     </div>
 
                     <div className="field">
