@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, uploadFile } from '../api/client.js';
-import { useAuth } from '../auth/AuthContext.jsx';
 import Icon from './Icon.jsx';
 import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
 
 const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+// รายชื่อทีมงานที่รับเป็น Owner ของแคมเปญ — แก้/เพิ่มชื่อตรงนี้ได้เลย
+// ตั้งใจไม่ดึงจากรายชื่อผู้ใช้ในระบบ เพราะบัญชีล็อกอิน (admin/member) ไม่ใช่คนที่ดูแลแคมเปญจริง
+const OWNERS = ['ทราย', 'อุ้ม', 'แพรวแพรว', 'ป้อนข้าว'];
 // กลุ่ม Target สำหรับการยิงแอด (ตามช่วงอายุ)
-// ทีมงานที่รับเป็น Owner ได้ แต่ยังไม่มีบัญชีล็อกอินในระบบ — เพิ่มชื่อตรงนี้ได้เลย
-const EXTRA_OWNERS = ['ทราย', 'อุ้ม', 'แพรวแพรว', 'ป้อนข้าว'];
 const CONTENT_TYPES = ['Review', 'Sale'];
 const CODE_EXPIRE_OPTS = [7, 30, 60, 180, 365]; // จำนวนวัน Gencode ให้เลือก
 const GROUP_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
@@ -97,14 +97,14 @@ const STATUS = [
 
 // ฟอร์มสร้าง/แก้ไขแคมเปญ (ใช้ร่วมกันทั้งหน้า Projects และ ProjectDetail)
 export default function ProjectForm({ editing, onClose, onSaved }) {
-    const { user } = useAuth();
     const isEdit = !!editing;
     const [form, setForm] = useState({
         name: editing?.name || '',
         brand: editing?.brand || '',
         objective: editing?.objective || '',
         brief_link: editing?.brief_link || '',
-        owner: editing?.owner || user?.full_name || user?.username || '',
+        // ไม่เติมชื่อคนที่ล็อกอินให้อัตโนมัติแล้ว — ให้เลือกจากรายชื่อทีมงานเอง
+        owner: editing?.owner || '',
         budget: editing?.budget ?? '',
         kol_target: editing?.kol_target ?? '',
         start_date: editing?.start_date || '',
@@ -124,16 +124,8 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
     const setPfBriefLink = (pf, link) => { setPlatformBriefs(m => ({ ...m, [pf]: { ...(m[pf] || {}), link } })); setPfBriefFiles(f => { const n = { ...f }; delete n[pf]; return n; }); };
     const setPfBriefFile = (pf, file) => { setPfBriefFiles(f => ({ ...f, [pf]: file })); setPlatformBriefs(m => ({ ...m, [pf]: { ...(m[pf] || {}), link: '' } })); };
     const briefInputRef = useRef(null);
-    const [owners, setOwners] = useState([]);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        api('/users/options').then(res => setOwners(res.data)).catch(() => {});
-    }, []);
-
-    // รายชื่อใน dropdown = ผู้ใช้ที่มีบัญชีในระบบ + ชื่อทีมงานที่ไม่ได้มีบัญชีล็อกอิน (ตัดชื่อซ้ำออก)
-    const ownerNames = [...new Set([...owners.map(o => o.name), ...EXTRA_OWNERS])];
 
     function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
     // Platform ชั้นบน
@@ -444,8 +436,8 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                         <label>Owner</label>
                         <select value={form.owner} onChange={e => update('owner', e.target.value)}>
                             <option value="">— เลือก —</option>
-                            {ownerNames.map(n => <option key={n} value={n}>{n}</option>)}
-                            {form.owner && !ownerNames.includes(form.owner) && (
+                            {OWNERS.map(n => <option key={n} value={n}>{n}</option>)}
+                            {form.owner && !OWNERS.includes(form.owner) && (
                                 <option value={form.owner}>{form.owner}</option>
                             )}
                         </select>
