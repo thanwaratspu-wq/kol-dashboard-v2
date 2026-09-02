@@ -75,12 +75,6 @@ function AdRow({ row, onSaved }) {
         finally { setSaving(false); }
     }
 
-    // บันทึกค่าตัวเลข/วันที่ (ไม่ยุ่งกับสถานะ)
-    const saveFields = () => put({
-        ad_spend: Number(spend) || 0,
-        ad_reach: Number(reach) || 0,
-        ad_end: end || null
-    });
     // บันทึกหมายเหตุ (เช่น Gencode ใช้ไม่ได้ / ยิงแอดไม่ได้) — เฉพาะเมื่อมีการเปลี่ยน
     const saveNote = () => { if (note !== (row.ad_note || '')) put({ ad_note: note || null }); };
 
@@ -146,7 +140,12 @@ function AdRow({ row, onSaved }) {
                     {adStatus === 'ยิงแล้ว' ? '✓ ยิงแล้ว' : 'ยังไม่ยิง'}
                 </button>
             </div>
-            <div className="ads-cell"><input type="date" value={end} onChange={e => setEnd(e.target.value)} onBlur={saveFields} /></div>
+            {/* แก้เองไม่ได้ — ระบบลงวันที่ให้ตอนกดปุ่มสถานะเป็น "ยิงแล้ว" และล้างให้เมื่อกดกลับเป็น "ยังไม่ยิง" */}
+            <div className="ads-cell">
+                {end
+                    ? <span className="ads-postdate" title="ลงอัตโนมัติจากวันที่กดยิงแอด">{end}</span>
+                    : <span className="muted" title="กดปุ่มสถานะเป็น 'ยิงแล้ว' แล้ววันที่จะขึ้นเอง">—</span>}
+            </div>
             <div className="ads-cell ads-late">
                 {lateDays === null
                     ? <span className="muted">—</span>
