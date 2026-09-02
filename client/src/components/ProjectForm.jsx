@@ -6,6 +6,8 @@ import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from
 
 const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 // กลุ่ม Target สำหรับการยิงแอด (ตามช่วงอายุ)
+// ทีมงานที่รับเป็น Owner ได้ แต่ยังไม่มีบัญชีล็อกอินในระบบ — เพิ่มชื่อตรงนี้ได้เลย
+const EXTRA_OWNERS = ['ทราย', 'อุ้ม', 'แพรวแพรว', 'ป้อนข้าว'];
 const CONTENT_TYPES = ['Review', 'Sale'];
 const CODE_EXPIRE_OPTS = [7, 30, 60, 180, 365]; // จำนวนวัน Gencode ให้เลือก
 const GROUP_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
@@ -129,6 +131,9 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
     useEffect(() => {
         api('/users/options').then(res => setOwners(res.data)).catch(() => {});
     }, []);
+
+    // รายชื่อใน dropdown = ผู้ใช้ที่มีบัญชีในระบบ + ชื่อทีมงานที่ไม่ได้มีบัญชีล็อกอิน (ตัดชื่อซ้ำออก)
+    const ownerNames = [...new Set([...owners.map(o => o.name), ...EXTRA_OWNERS])];
 
     function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
     // Platform ชั้นบน
@@ -439,8 +444,8 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                         <label>Owner</label>
                         <select value={form.owner} onChange={e => update('owner', e.target.value)}>
                             <option value="">— เลือก —</option>
-                            {owners.map(o => <option key={o.id} value={o.name}>{o.name}</option>)}
-                            {form.owner && !owners.some(o => o.name === form.owner) && (
+                            {ownerNames.map(n => <option key={n} value={n}>{n}</option>)}
+                            {form.owner && !ownerNames.includes(form.owner) && (
                                 <option value={form.owner}>{form.owner}</option>
                             )}
                         </select>
