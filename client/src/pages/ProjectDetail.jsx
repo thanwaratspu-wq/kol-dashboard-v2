@@ -463,7 +463,7 @@ export default function ProjectDetail() {
                 </div>
                 <div className="pd-metric">
                     <div className="pd-metric-icon owner"><Icon name="users" size={20} /></div>
-                    <div><div className="pd-metric-label">Owner</div><div className="pd-metric-value sm">{project.owner || '—'}</div></div>
+                    <div><div className="pd-metric-label">Project Owner</div><div className="pd-metric-value sm">{project.owner || '—'}</div></div>
                 </div>
             </div>
 

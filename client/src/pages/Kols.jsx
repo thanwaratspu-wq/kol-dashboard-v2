@@ -118,7 +118,7 @@ export default function Kols() {
                         <thead>
                             <tr>
                                 <th>Month</th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
-                                <th>Platform</th><th>Owner</th><th>Agency</th><th className="num">COST</th>
+                                <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
                                 <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
                                 <th>Post Link</th><th>Gencode</th><th>ID POST</th>
                             </tr>

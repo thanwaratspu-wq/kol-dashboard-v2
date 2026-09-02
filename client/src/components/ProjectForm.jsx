@@ -168,7 +168,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
             (targetsForProducts(g.products).length === 0 || asTargetArray(g.target).length > 0) &&
             g.allocations.length > 0 && g.allocations.every(a => a.tier && (Number(a.kols) || 0) > 0));
         if (!groupsOk) m.push('เลือก Platform + เพิ่มกลุ่มสินค้า (สินค้า/Target/Content Type + ทุกแถว Tier/จำนวน KOL ให้ครบ)');
-        if (!form.owner) m.push('Owner');
+        if (!form.owner) m.push('Project Owner');
         if (!(adGroups.length > 0 && adGroups.every(g => Number(String(g.budget).replace(/\D/g, '')) > 0))) m.push('Budget ของแต่ละกลุ่มสินค้า');
         if (!form.start_date) m.push('วันเริ่ม (Start)');
         if (!form.end_date) m.push('วันสิ้นสุด (End)');
@@ -433,7 +433,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                     </div>
 
                     <div className="field">
-                        <label>Owner</label>
+                        <label>Project Owner</label>
                         <select value={form.owner} onChange={e => update('owner', e.target.value)}>
                             <option value="">— เลือก —</option>
                             {OWNERS.map(n => <option key={n} value={n}>{n}</option>)}
