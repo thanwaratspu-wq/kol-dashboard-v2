@@ -31,10 +31,6 @@ export default function Report() {
     const kolRank = [...kolRows]
         .sort((a, b) => perfScore(b) - perfScore(a) || ((a.cpm || Infinity) - (b.cpm || Infinity)) || (a.cost - b.cost))
         .slice(0, 5);
-    const prodRate = p => (p.total ? p.posted / p.total : 0);
-    const prodRank = [...(d.by_product || [])].filter(p => p.product && p.product !== '—')
-        .sort((a, b) => (prodRate(b) - prodRate(a)) || ((b.ads || 0) - (a.ads || 0)) || (a.budget - b.budget))
-        .slice(0, 5);
     const medal = i => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
     const fmtV = n => { n = Number(n) || 0; if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return String(n); };
     const perf = d.performance || {};
@@ -197,7 +193,7 @@ export default function Report() {
                 </div>
             </div>
 
-            {/* อันดับ Performance ดีที่สุด (ราย KOL + ราย Product) */}
+            {/* อันดับ Performance ดีที่สุด (ราย KOL) */}
             <div className="panel">
                 <div className="panel-head"><h3>🏆 อันดับ Performance ดีที่สุด <span className="dash-section-sub">เรียงจากผลงานดีสุดในแคมเปญ</span></h3></div>
                 <div className="rank-grid">
@@ -219,19 +215,6 @@ export default function Report() {
                                     <span className="sep"><i>CPM</i><b>{Number(k.cpm) > 0 ? B(k.cpm) : '—'}</b></span>
                                     <span><i>CPE</i><b>{Number(k.cpe) > 0 ? B(k.cpe) : '—'}</b></span>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="rank-col">
-                        <div className="rank-col-title">🎯 Top Product</div>
-                        {prodRank.length === 0 ? <div className="rank-empty">— ยังไม่มีข้อมูล</div> : prodRank.map((p, i) => (
-                            <div className={'rank-item' + (i < 3 ? ' top' : '')} key={p.product}>
-                                <span className={'rank-no r' + (i + 1)}>{medal(i)}</span>
-                                <div className="rank-main">
-                                    <b><ProductSummary value={p.product} /></b>
-                                    <span className="rank-sub">{p.kols} KOL · โพสต์ {p.posted}/{p.total}{p.ads ? ` · ยิงแอด ${p.ads}` : ''}</span>
-                                </div>
-                                <div className="rank-metric">{Math.round(prodRate(p) * 100)}%</div>
                             </div>
                         ))}
                     </div>
