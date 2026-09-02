@@ -127,6 +127,19 @@ a { text-decoration: none; color: inherit; }
     display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .btn-logout:hover { border-color: var(--mint); color: var(--mint); }
+/* ปุ่มเปลี่ยนรหัสผ่านใน sidebar — สไตล์เดียวกับปุ่มออกจากระบบ แต่เบากว่า */
+.btn-changepw {
+    width: 100%; padding: 9px; margin-bottom: 8px; border: 1px dashed var(--border); background: transparent;
+    border-radius: 10px; color: var(--muted); font-weight: 600; cursor: pointer; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-changepw:hover { border-color: var(--mint); color: var(--mint); background: #fff; }
+
+/* โมดัลเปลี่ยนรหัสผ่าน */
+.cpw-hint { display: block; margin-top: 5px; font-size: 11.5px; color: var(--muted); }
+.cpw-hint.bad { color: #e0562b; font-weight: 600; }
+.cpw-show { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.cpw-show input { width: auto; margin: 0; }
 
 .content { flex: 1; padding: 30px 40px; min-width: 0; }
 

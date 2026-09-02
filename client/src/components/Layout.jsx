@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Icon from './Icon.jsx';
+import ChangePasswordModal from './ChangePasswordModal.jsx';
 
 const MAIN_NAV = [
     { to: '/', label: 'ภาพรวม', icon: 'dashboard', end: true },
@@ -20,6 +22,7 @@ const ADMIN_NAV = [
 export default function Layout() {
     const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
+    const [showPw, setShowPw] = useState(false);
 
     function handleLogout() {
         logout();
@@ -67,11 +70,15 @@ export default function Layout() {
                             </div>
                         </div>
                     </div>
+                    <button className="btn-changepw" onClick={() => setShowPw(true)}>
+                        <Icon name="edit" size={15} /> เปลี่ยนรหัสผ่าน
+                    </button>
                     <button className="btn-logout" onClick={handleLogout}>
                         <Icon name="logout" size={17} /> ออกจากระบบ
                     </button>
                 </div>
             </aside>
+            {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
             <main className="content">
                 <Outlet />
             </main>

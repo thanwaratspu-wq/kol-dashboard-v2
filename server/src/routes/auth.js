@@ -59,4 +59,39 @@ router.get('/me', authenticate, async (req, res, next) => {
     }
 });
 
+// PUT /api/auth/password — เปลี่ยนรหัสผ่านของตัวเอง (ต้องยืนยันรหัสเดิมก่อน)
+router.put('/password', authenticate, async (req, res, next) => {
+    try {
+        const { current_password, new_password } = req.body || {};
+        if (!current_password || !new_password) {
+            return res.status(400).json({ status: 'error', message: 'กรุณากรอกทั้งรหัสผ่านเดิมและรหัสผ่านใหม่' });
+        }
+        if (String(new_password).length < 8) {
+            return res.status(400).json({ status: 'error', message: 'รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร' });
+        }
+        if (current_password === new_password) {
+            return res.status(400).json({ status: 'error', message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม' });
+        }
+
+        const user = await store.users.findById(req.user.id);
+        if (!user || !user.is_active) {
+            return res.status(404).json({ status: 'error', message: 'ไม่พบผู้ใช้' });
+        }
+
+        // ยืนยันรหัสเดิมก่อนเสมอ — กันคนอื่นมาเปลี่ยนรหัสตอนเจ้าของลุกจากเครื่อง
+        const ok = await bcrypt.compare(current_password, user.password_hash);
+        if (!ok) {
+            return res.status(401).json({ status: 'error', message: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+        }
+
+        const password_hash = await bcrypt.hash(new_password, 10);
+        await store.users.update(user.id, { password_hash });
+
+        // token เดิมยังใช้ได้จนหมดอายุ (ระบบไม่ได้เก็บ session ฝั่งเซิร์ฟเวอร์)
+        res.json({ status: 'success', message: 'เปลี่ยนรหัสผ่านเรียบร้อย' });
+    } catch (err) {
+        next(err);
+    }
+});
+
 module.exports = router;
