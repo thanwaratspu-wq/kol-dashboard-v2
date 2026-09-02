@@ -5,7 +5,7 @@ import Avatar from '../components/Avatar.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { ProductSummary } from '../components/ProductChips.jsx';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const STATUSES = ['ยังไม่ยิง', 'ยิงแล้ว'];
 
 const fmtMoney = n => '฿' + (Number(n) || 0).toLocaleString('th-TH');

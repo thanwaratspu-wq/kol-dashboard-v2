@@ -3,7 +3,7 @@ import { api, uploadFile } from '../api/client.js';
 import Icon from './Icon.jsx';
 import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 // รายชื่อทีมงานที่รับเป็น Owner ของแคมเปญ — แก้/เพิ่มชื่อตรงนี้ได้เลย
 // ตั้งใจไม่ดึงจากรายชื่อผู้ใช้ในระบบ เพราะบัญชีล็อกอิน (admin/member) ไม่ใช่คนที่ดูแลแคมเปญจริง
 const OWNERS = ['ทราย', 'อุ้ม', 'แพรวแพรว', 'ป้อนข้าว'];

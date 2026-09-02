@@ -3,7 +3,7 @@ import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import BudgetTrendModal from '../components/BudgetTrendModal.jsx';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 
 const PLATFORM_CARDS = [
     { key: 'TikTok', label: 'TikTok', badge: '♪', color: '#010101', bar: '#010101' },

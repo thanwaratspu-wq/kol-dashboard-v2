@@ -161,7 +161,7 @@ function PaymentDetailModal({ row, onClose, onChange }) {
     );
 }
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 
 export default function Payments() {
     const [rows, setRows] = useState([]);

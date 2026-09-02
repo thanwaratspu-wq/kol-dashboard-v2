@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import Icon from '../components/Icon.jsx';
 import ProjectForm from '../components/ProjectForm.jsx';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const STATUS_LABEL = {
     Draft: 'ร่าง', Active: 'กำลังทำ', Completed: 'เสร็จสิ้น', Cancelled: 'ยกเลิก'
 };

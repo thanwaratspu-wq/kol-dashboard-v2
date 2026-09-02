@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const MONTHS = [
     ['01', 'มกราคม'], ['02', 'กุมภาพันธ์'], ['03', 'มีนาคม'], ['04', 'เมษายน'],
     ['05', 'พฤษภาคม'], ['06', 'มิถุนายน'], ['07', 'กรกฎาคม'], ['08', 'สิงหาคม'],

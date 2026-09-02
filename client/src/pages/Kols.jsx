@@ -5,7 +5,7 @@ import ProductChips from '../components/ProductChips.jsx';
 
 const splitCodes = v => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const N = n => (Number(n) || 0).toLocaleString('th-TH');
 function fmtD(d) {

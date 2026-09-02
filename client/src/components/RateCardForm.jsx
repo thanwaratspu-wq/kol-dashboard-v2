@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api/client.js';
 import { productsByBrand, productLabel } from '../data/products.js';
 
-const BRANDS = ["Jula's Herb", "Jula's Herb Lab", 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
 
 // ฟอร์มสอบถาม Rate Card จากเอเจนซี่/KOL
