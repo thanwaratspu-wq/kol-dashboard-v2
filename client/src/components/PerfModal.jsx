@@ -73,7 +73,7 @@ export default function PerfModal({ sub, group, fetchUrl, onSave, onClose }) {
                     <div className="field"><label>Views (ยอดวิว)</label><input inputMode="numeric" value={f.views} onChange={e => up('views', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
                     <div className="field"><label>Content Format</label>
                         <div className="perf-readonly" title="ตั้งไว้ตอนสร้างแคมเปญ — แก้ได้ที่หน้าแก้ไขแคมเปญ">
-                            {briefFormat || <span className="muted">ยังไม่ได้ระบุตอนตั้งแคมเปญ</span>}
+                            {briefFormat ? String(briefFormat).split(',').map(x => x.trim()).filter(Boolean).join(' · ') : <span className="muted">ยังไม่ได้ระบุตอนตั้งแคมเปญ</span>}
                         </div>
                     </div>
                 </div>

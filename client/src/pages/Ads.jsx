@@ -7,6 +7,9 @@ import { productLabel, asTargetArray } from '../data/products.js';
 import { ProductSummary } from '../components/ProductChips.jsx';
 import { fmtDate } from '../utils/date.js';
 
+// ค่าที่เก็บเป็นสตริงคั่นด้วย , (เช่น content_format) → แยกเป็นรายตัว
+const splitCsv = v => (v ? String(v).split(',').map(x => x.trim()).filter(Boolean) : []);
+
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const STATUSES = ['ยังไม่ยิง', 'ยิงแล้ว'];
 
@@ -151,7 +154,7 @@ function AdRow({ row, onSaved }) {
                     <>
                         {row.content_type && <span className="proc-ctype-chip">{row.content_type}</span>}
                         {row.media_type && <span className="proc-ctype-chip media">{row.media_type}</span>}
-                        {row.group_format && <span className="proc-ctype-chip fmt">{row.group_format}</span>}
+                        {splitCsv(row.group_format).map(x => <span className="proc-ctype-chip fmt" key={x}>{x}</span>)}
                     </>
                 ) : <span className="muted">—</span>}
             </div>

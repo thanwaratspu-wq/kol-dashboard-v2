@@ -4,6 +4,7 @@ import Icon from './Icon.jsx';
 import DatePicker from './DatePicker.jsx';
 import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
 import { CONTENT_FORMATS } from '../data/contentFormats.js';
+import MultiSelect from './MultiSelect.jsx';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 // รายชื่อทีมงานที่รับเป็น Owner ของแคมเปญ — แก้/เพิ่มชื่อตรงนี้ได้เลย
@@ -389,10 +390,9 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                                                     <option value="">— Photo / VDO —</option>
                                                     {MEDIA_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
-                                                <select className="target-add" value={g.content_format} onChange={e => setGroupField(i, 'content_format', e.target.value)}>
-                                                    <option value="">— Content Format —</option>
-                                                    {CONTENT_FORMATS.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
+                                                <MultiSelect value={g.content_format} options={CONTENT_FORMATS}
+                                                    onChange={v => setGroupField(i, 'content_format', v)}
+                                                    placeholder="— Content Format —" itemName="Content Format" />
                                             </div>
                                             {/* จำนวนวัน Gencode (โค้ดใช้ได้กี่วัน) */}
                                             <label className="platform-budget platform-budget-row">

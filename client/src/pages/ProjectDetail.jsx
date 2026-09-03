@@ -10,6 +10,9 @@ import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
 
+// ค่าที่เก็บเป็นสตริงคั่นด้วย , (เช่น content_format) → แยกเป็นรายตัว
+const splitCsv = v => (v ? String(v).split(',').map(x => x.trim()).filter(Boolean) : []);
+
 const STATUS_LABEL = { Draft: 'ร่าง', Active: 'กำลังทำ', Completed: 'เสร็จสิ้น', Cancelled: 'ยกเลิก' };
 const STATUS_ORDER = ['Draft', 'Active', 'Completed', 'Cancelled'];
 const LINK_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
@@ -607,7 +610,7 @@ export default function ProjectDetail() {
                                                 </div>
                                                 <div className="adg-field">
                                                     <span className="adg-label">Content Format</span>
-                                                    <div className="adg-val">{g.content_format ? <span className="chip-ctype">{g.content_format}</span> : <span className="muted">—</span>}</div>
+                                                    <div className="adg-val">{g.content_format ? splitCsv(g.content_format).map(x => <span className="chip-ctype" key={x}>{x}</span>) : <span className="muted">—</span>}</div>
                                                 </div>
                                                 {g.brief && (
                                                     <div className="adg-field">

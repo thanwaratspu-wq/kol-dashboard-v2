@@ -7,6 +7,9 @@ import { asTargetArray } from '../data/products.js';
 import { ProductSummary } from './ProductChips.jsx';
 import { draftIsNew, markDraftSeen } from '../utils/tabUpdates.js';
 
+// ค่าที่เก็บเป็นสตริงคั่นด้วย , (เช่น content_format) → แยกเป็นรายตัว
+const splitCsv = v => (v ? String(v).split(',').map(x => x.trim()).filter(Boolean) : []);
+
 const EXPIRE_OPTS = [30, 45, 60, 90, 120];
 // แพลตฟอร์มที่ไม่ใช้ ID Post → ช่องขึ้น "-" อัตโนมัติ (กรอกไม่ได้)
 const NO_IDPOST = ['Facebook', 'Lemon8', 'YouTube', 'X'];
@@ -97,7 +100,7 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
                         <>
                             {group.content_type && <span className="proc-ctype-chip">{group.content_type}</span>}
                             {group.media_type && <span className="proc-ctype-chip media">{group.media_type}</span>}
-                            {group.content_format && <span className="proc-ctype-chip fmt">{group.content_format}</span>}
+                            {splitCsv(group.content_format).map(x => <span className="proc-ctype-chip fmt" key={x}>{x}</span>)}
                         </>
                     ) : <span className="muted">—</span>}
                 </div>
