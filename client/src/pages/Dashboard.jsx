@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import BudgetTrendModal from '../components/BudgetTrendModal.jsx';
+import { ProductSummary } from '../components/ProductChips.jsx';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const TOP_PREVIEW = 5;   // Top Influencer แสดงกี่อันดับก่อนกดดูเพิ่ม
@@ -196,7 +197,7 @@ export default function Dashboard() {
                     <table className="data-table ti-table">
                         <thead>
                             <tr>
-                                <th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th>
+                                <th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th><th>Product</th>
                                 <th className="num">ค่าตัวรวม</th>
                                 <th className="num">ยอดวิว</th>
                                 <th className="num">Views</th><th className="num">Likes</th><th className="num">Comments</th>
@@ -207,12 +208,13 @@ export default function Dashboard() {
                         </thead>
                         <tbody>
                             {topKols.length === 0 ? (
-                                <tr><td colSpan="13" className="empty">ยังไม่มีข้อมูล</td></tr>
+                                <tr><td colSpan="14" className="empty">ยังไม่มีข้อมูล</td></tr>
                             ) : shownKols.map((k, i) => (
                                 <tr key={k.kol_id}>
                                     <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
                                     <td><strong>{k.name}</strong></td>
                                     <td>{k.platform ? <span className="tag">{k.platform}</span> : '—'}</td>
+                                    <td><ProductSummary value={k.product} max={2} /></td>
                                     <td className="num">{fmtMoney(k.fee)}</td>
                                     <td className="num">{fmtNum(k.views)}</td>
                                     <td className="num">{fmtNum(k.content_views)}</td>

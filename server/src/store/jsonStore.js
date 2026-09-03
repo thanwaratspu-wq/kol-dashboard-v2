@@ -598,6 +598,7 @@ const dashboard = {
                 const fee = Number(s.budget) || 0;
                 return {
                     kol_id: s.id, name: s.account_name, platform: s.platform || null,
+                    product: s.product || null,
                     views: reach, fee,
                     // engagement = อัตราส่วนเป็น % (ฟิลด์เดิม หน้าเว็บเติม % ต่อท้ายให้)
                     engagement: views > 0 ? Number(((engagementTotal / views) * 100).toFixed(2)) : null,
