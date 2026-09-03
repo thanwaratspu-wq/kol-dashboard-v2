@@ -26,7 +26,7 @@ function PerfBadge({ row }) {
             <span className="perf-pill none" title={`ยังตัดสินไม่ได้ เพราะยังไม่ได้กรอกผลงานคอนเทนต์
 (View / Like / Comment / Save / Share)
 
-กรอกได้ที่ปุ่ม 📊 ในหน้า On Process ของแคมเปญ`}>ยังไม่ประเมิน</span>
+กรอกได้ที่ปุ่ม 📊 ในหน้า On Process ของแคมเปญ`}>Not rated</span>
         );
     }
     const cpmOk = row.cpm > 0 && row.cpm <= GOOD_CPM;
@@ -40,8 +40,8 @@ function PerfBadge({ row }) {
         `ยอดวิว ${N(row.views)} · Engagement ${N(row.engagement)} (ER ${row.er}%)`
     ].join('\n');
     return cpmOk && cpeOk
-        ? <span className="perf-pill good" title={tip}>✓ ผ่านเกณฑ์</span>
-        : <span className="perf-pill bad" title={tip}>✕ ไม่ผ่านเกณฑ์</span>;
+        ? <span className="perf-pill good" title={tip}>✓ Pass</span>
+        : <span className="perf-pill bad" title={tip}>✕ Fail</span>;
 }
 
 export default function Kols() {
