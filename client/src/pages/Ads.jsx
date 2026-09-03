@@ -166,6 +166,8 @@ export default function Ads() {
     const [allTime, setAllTime] = useState(true);
     const [brand, setBrand] = useState('');
     const [status, setStatus] = useState('');
+    const [platform, setPlatform] = useState('');
+    const [late, setLate] = useState('');   // '' | ontime | warn | bad
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
 
@@ -176,17 +178,38 @@ export default function Ads() {
             q.set('from', from); q.set('to', to);
         }
         if (brand) q.set('brand', brand);
-        if (status) q.set('status', status);
+        // สถานะ/แพลตฟอร์ม/ความช้า กรองฝั่งหน้าเว็บทั้งหมด จะได้นับจำนวนบนปุ่มให้ตรงกันได้
         api(`/ads?${q.toString()}`)
             .then(res => setData(res.data))
             .catch(err => setError(err.message));
-    }, [month, allTime, brand, status]);
+    }, [month, allTime, brand]);
 
     useEffect(() => { load(); }, [load]);
 
     const s = data?.summary;
+    const allRows = data?.rows || [];
+
+    // จัดกลุ่มความช้า — นับเฉพาะโพสต์ที่ยิงแล้วและมีวันครบทั้งสองฝั่ง
+    const lateBucket = r => {
+        if (r.ad_status !== 'ยิงแล้ว' || !r.post_date || !r.ad_end) return null;
+        const d = daysBetween(r.post_date, r.ad_end);
+        if (d === null) return null;
+        return d <= 0 ? 'ontime' : d <= 3 ? 'warn' : 'bad';
+    };
+    // skip = ข้ามตัวกรองตัวนั้น ใช้ตอนนับเลขบนปุ่ม (เลขบอกว่า "ถ้ากดปุ่มนี้จะเหลือกี่รายการ")
+    const matches = (r, skip) =>
+        (skip === 'platform' || !platform || r.platform === platform) &&
+        (skip === 'status' || !status || r.ad_status === status) &&
+        (skip === 'late' || !late || lateBucket(r) === late);
+
     // เรียง: ยังไม่ยิง อยู่บน, ยิงแล้ว ลงไปอยู่ล่าง (ของเดิมในกลุ่มเดียวกันคงลำดับตาม data)
-    const rows = [...(data?.rows || [])].sort((a, b) => (a.ad_status === 'ยิงแล้ว' ? 1 : 0) - (b.ad_status === 'ยิงแล้ว' ? 1 : 0));
+    const rows = allRows.filter(r => matches(r))
+        .sort((a, b) => (a.ad_status === 'ยิงแล้ว' ? 1 : 0) - (b.ad_status === 'ยิงแล้ว' ? 1 : 0));
+
+    const countIf = (skip, pred) => allRows.filter(r => matches(r, skip) && pred(r)).length;
+    const platformOptions = [...new Set(allRows.map(r => r.platform).filter(Boolean))].sort();
+    const LATE_OPTS = [['ontime', 'ตรงเวลา'], ['warn', 'ช้า 1-3 วัน'], ['bad', 'ช้าเกิน 3 วัน']];
+    const hasFilter = !!(platform || status || late);
     // ค่า insight เพิ่มเติม (คำนวณจากข้อมูลที่มี)
     const topBrand = s && s.by_brand && s.by_brand.length ? s.by_brand[0] : null;
     const donePct = s && s.total_posts ? Math.round((s.done_count / s.total_posts) * 100) : 0;
@@ -210,11 +233,6 @@ export default function Ads() {
                 <button className={'brand-chip' + (allTime ? ' active' : '')} onClick={() => setAllTime(a => !a)}>
                     {allTime ? '✓ ทุกเดือน' : 'ดูทุกเดือน'}
                 </button>
-                <span style={{ width: 12 }} />
-                <button className={'brand-chip' + (status === '' ? ' active' : '')} onClick={() => setStatus('')}>ทุกสถานะ</button>
-                {STATUSES.map(st => (
-                    <button key={st} className={'brand-chip' + (status === st ? ' active' : '')} onClick={() => setStatus(st)}>{st}</button>
-                ))}
             </div>
 
             <div className="brand-filter">
@@ -223,6 +241,50 @@ export default function Ads() {
                 {BRANDS.map(b => (
                     <button key={b} className={'brand-chip' + (brand === b ? ' active' : '')} onClick={() => setBrand(b)}>{b}</button>
                 ))}
+            </div>
+
+            {/* ตัวกรองที่ทำงานกับรายการในตาราง — เลขในวงเล็บบอกว่ากดแล้วจะเหลือกี่โพสต์ */}
+            <div className="brand-filter">
+                <span className="brand-filter-label">Platform:</span>
+                <button className={'brand-chip' + (platform === '' ? ' active' : '')} onClick={() => setPlatform('')}>
+                    ทั้งหมด ({countIf('platform', () => true)})
+                </button>
+                {platformOptions.map(p => (
+                    <button key={p} className={'brand-chip' + (platform === p ? ' active' : '')} onClick={() => setPlatform(p)}>
+                        {p} ({countIf('platform', r => r.platform === p)})
+                    </button>
+                ))}
+            </div>
+
+            <div className="brand-filter">
+                <span className="brand-filter-label">สถานะยิงแอด:</span>
+                <button className={'brand-chip' + (status === '' ? ' active' : '')} onClick={() => setStatus('')}>
+                    ทั้งหมด ({countIf('status', () => true)})
+                </button>
+                {STATUSES.map(st => (
+                    <button key={st} className={'brand-chip' + (status === st ? ' active' : '')} onClick={() => setStatus(st)}>
+                        {st === 'ยิงแล้ว' ? '✓ ยิงแล้ว' : st} ({countIf('status', r => r.ad_status === st)})
+                    </button>
+                ))}
+            </div>
+
+            <div className="brand-filter">
+                <span className="brand-filter-label">ยิงช้า:</span>
+                <button className={'brand-chip' + (late === '' ? ' active' : '')} onClick={() => setLate('')}>
+                    ทั้งหมด ({countIf('late', () => true)})
+                </button>
+                {LATE_OPTS.map(([v, label]) => (
+                    <button key={v} className={'brand-chip' + (late === v ? ' active' : '')} onClick={() => setLate(v)}
+                        title="นับเฉพาะโพสต์ที่ยิงแอดแล้วและมีทั้งวันลงคลิปและวันยิงแอด">
+                        {label} ({countIf('late', r => lateBucket(r) === v)})
+                    </button>
+                ))}
+                {hasFilter && (
+                    <button className="brand-chip" style={{ marginInlineStart: 8 }}
+                        onClick={() => { setPlatform(''); setStatus(''); setLate(''); }}>
+                        ✕ ล้างตัวกรอง
+                    </button>
+                )}
             </div>
 
             {error && <div className="alert-error">{error}</div>}
@@ -255,15 +317,21 @@ export default function Ads() {
             {/* ตารางติดตามการยิงแอดรายโพสต์ */}
             <div className="panel">
                 <div className="dash-section-head">
-                    <h3>ติดตามการยิงแอดรายโพสต์ <span className="dash-section-sub">กรอกข้อมูลแล้วคลิกออกจากช่องเพื่อบันทึก</span></h3>
+                    <h3>ติดตามการยิงแอดรายโพสต์ <span className="dash-section-sub">
+                        {hasFilter ? `แสดง ${rows.length} จาก ${allRows.length} โพสต์` : 'กรอกข้อมูลแล้วคลิกออกจากช่องเพื่อบันทึก'}
+                    </span></h3>
                 </div>
                 {!data ? (
                     <p className="empty" style={{ padding: '20px 0' }}>กำลังโหลด...</p>
                 ) : rows.length === 0 ? (
                     <div className="empty-illus">
                         <div className="empty-illus-icon"><Icon name="target" size={30} /></div>
-                        <div className="empty-illus-title">ยังไม่มีโพสต์ที่ยิงแอด</div>
-                        <p className="empty-illus-sub">เมื่อ KOL ลงงานและทีมใส่ลิงก์โพสต์ในแท็บ On Process แล้ว โพสต์จะขึ้นมาที่นี่ให้ติดตามค่าแอดอัตโนมัติ</p>
+                        <div className="empty-illus-title">{hasFilter ? 'ไม่มีโพสต์ตรงกับตัวกรอง' : 'ยังไม่มีโพสต์ที่ยิงแอด'}</div>
+                        <p className="empty-illus-sub">
+                            {hasFilter
+                                ? 'ลองกด "ล้างตัวกรอง" หรือเลือกเงื่อนไขอื่นดู'
+                                : 'เมื่อ KOL ลงงานและทีมใส่ลิงก์โพสต์ในแท็บ On Process แล้ว โพสต์จะขึ้นมาที่นี่ให้ติดตามค่าแอดอัตโนมัติ'}
+                        </p>
                     </div>
                 ) : (
                     <div className="ads-tbl-scroll">
