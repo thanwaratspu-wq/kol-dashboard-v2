@@ -905,6 +905,30 @@ a { text-decoration: none; color: inherit; }
 /* ตารางยิงแอด (แถวแนวนอน) */
 .ads-tbl-scroll { overflow-x: auto; }
 .ads-tbl { min-width: 1450px; }
+/* ปุ่มกรองเล็กบนหัวคอลัมน์ (แบบตาราง Excel) */
+.colf { position: relative; display: inline-flex; vertical-align: middle; }
+.colf-btn {
+    margin-inline-start: 4px; width: 17px; height: 17px; padding: 0; line-height: 1;
+    border: 1px solid var(--border); border-radius: 5px; background: #fff;
+    color: var(--muted); font-size: 9px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.colf-btn:hover { border-color: var(--mint); color: var(--mint-dark); }
+.colf-btn:focus-visible { outline: 2px solid var(--mint); outline-offset: 1px; }
+.colf-btn.on { background: var(--mint); border-color: var(--mint); color: #fff; }
+.colf-menu {
+    position: fixed; z-index: 60; min-width: 190px; padding: 5px;
+    background: #fff; border: 1px solid var(--border-str, var(--border)); border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(16, 60, 45, .16);
+}
+.colf-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    width: 100%; padding: 7px 10px; border: none; border-radius: 7px; background: transparent;
+    font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer; text-align: start;
+}
+.colf-item:hover { background: var(--bg-soft); }
+.colf-item.on { background: var(--mint); color: #fff; font-weight: 700; }
+.colf-item-count { font-size: 11.5px; opacity: .7; font-variant-numeric: tabular-nums; }
 .ads-tbl-head, .ads-row {
     display: grid;
     /* KOL แคมเปญ PRODUCT TARGET CONTENT โพสต์ GENCODE ID_POST PostDate สถานะ วันยิงแอด ยิงช้า หมายเหตุ */

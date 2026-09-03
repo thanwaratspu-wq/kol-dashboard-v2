@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import Avatar from '../components/Avatar.jsx';
@@ -51,6 +51,59 @@ function CopyCode({ value }) {
             <button type="button" className={'ads-copy' + (copied ? ' done' : '')} onClick={copy} title={copied ? 'คัดลอกแล้ว' : 'คัดลอก'}>
                 {copied ? <Icon name="check" size={13} /> : <Icon name="copy" size={13} />}
             </button>
+        </span>
+    );
+}
+
+// ปุ่มกรองเล็ก ๆ บนหัวคอลัมน์ (แบบเดียวกับตารางใน Excel)
+// เมนูใช้ position:fixed เพราะหัวตารางอยู่ในกรอบที่เลื่อนแนวนอน ถ้าใช้ absolute จะโดนตัด
+function ColumnFilter({ label, value, options, onPick }) {
+    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState({ top: 0, left: 0 });
+    const btnRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const onDown = e => { if (!e.target.closest('.colf-menu, .colf-btn')) setOpen(false); };
+        const onKey = e => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        // เลื่อนตารางแล้วเมนูจะลอยผิดที่ ปิดไปเลยง่ายกว่า
+        window.addEventListener('scroll', () => setOpen(false), { once: true, capture: true });
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [open]);
+
+    function toggle() {
+        if (!open && btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect();
+            setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 210) });
+        }
+        setOpen(o => !o);
+    }
+
+    const current = options.find(o => o.value === value);
+    return (
+        <span className="colf">
+            <button ref={btnRef} type="button" className={'colf-btn' + (value ? ' on' : '')} onClick={toggle}
+                title={value ? `กรอง: ${current ? current.label : value}` : `กรองตาม${label}`}
+                aria-label={`กรองตาม${label}`} aria-expanded={open}>
+                ▾
+            </button>
+            {open && (
+                <div className="colf-menu" style={{ top: pos.top, left: pos.left }} role="menu">
+                    {options.map(o => (
+                        <button key={o.value || 'all'} type="button" role="menuitem"
+                            className={'colf-item' + (value === o.value ? ' on' : '')}
+                            onClick={() => { onPick(o.value); setOpen(false); }}>
+                            <span className="colf-item-label">{o.label}</span>
+                            <span className="colf-item-count">{o.count}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
         </span>
     );
 }
@@ -243,50 +296,6 @@ export default function Ads() {
                 ))}
             </div>
 
-            {/* ตัวกรองที่ทำงานกับรายการในตาราง — เลขในวงเล็บบอกว่ากดแล้วจะเหลือกี่โพสต์ */}
-            <div className="brand-filter">
-                <span className="brand-filter-label">Platform:</span>
-                <button className={'brand-chip' + (platform === '' ? ' active' : '')} onClick={() => setPlatform('')}>
-                    ทั้งหมด ({countIf('platform', () => true)})
-                </button>
-                {platformOptions.map(p => (
-                    <button key={p} className={'brand-chip' + (platform === p ? ' active' : '')} onClick={() => setPlatform(p)}>
-                        {p} ({countIf('platform', r => r.platform === p)})
-                    </button>
-                ))}
-            </div>
-
-            <div className="brand-filter">
-                <span className="brand-filter-label">สถานะยิงแอด:</span>
-                <button className={'brand-chip' + (status === '' ? ' active' : '')} onClick={() => setStatus('')}>
-                    ทั้งหมด ({countIf('status', () => true)})
-                </button>
-                {STATUSES.map(st => (
-                    <button key={st} className={'brand-chip' + (status === st ? ' active' : '')} onClick={() => setStatus(st)}>
-                        {st === 'ยิงแล้ว' ? '✓ ยิงแล้ว' : st} ({countIf('status', r => r.ad_status === st)})
-                    </button>
-                ))}
-            </div>
-
-            <div className="brand-filter">
-                <span className="brand-filter-label">ยิงช้า:</span>
-                <button className={'brand-chip' + (late === '' ? ' active' : '')} onClick={() => setLate('')}>
-                    ทั้งหมด ({countIf('late', () => true)})
-                </button>
-                {LATE_OPTS.map(([v, label]) => (
-                    <button key={v} className={'brand-chip' + (late === v ? ' active' : '')} onClick={() => setLate(v)}
-                        title="นับเฉพาะโพสต์ที่ยิงแอดแล้วและมีทั้งวันลงคลิปและวันยิงแอด">
-                        {label} ({countIf('late', r => lateBucket(r) === v)})
-                    </button>
-                ))}
-                {hasFilter && (
-                    <button className="brand-chip" style={{ marginInlineStart: 8 }}
-                        onClick={() => { setPlatform(''); setStatus(''); setLate(''); }}>
-                        ✕ ล้างตัวกรอง
-                    </button>
-                )}
-            </div>
-
             {error && <div className="alert-error">{error}</div>}
 
             {/* การ์ดสรุปค่าแอด */}
@@ -318,8 +327,13 @@ export default function Ads() {
             <div className="panel">
                 <div className="dash-section-head">
                     <h3>ติดตามการยิงแอดรายโพสต์ <span className="dash-section-sub">
-                        {hasFilter ? `แสดง ${rows.length} จาก ${allRows.length} โพสต์` : 'กรอกข้อมูลแล้วคลิกออกจากช่องเพื่อบันทึก'}
+                        {hasFilter ? `แสดง ${rows.length} จาก ${allRows.length} โพสต์` : 'กดปุ่ม ▾ ที่หัวคอลัมน์เพื่อกรอง · กรอกข้อมูลแล้วคลิกออกจากช่องเพื่อบันทึก'}
                     </span></h3>
+                    {hasFilter && (
+                        <button type="button" className="btn-ghost" onClick={() => { setPlatform(''); setStatus(''); setLate(''); }}>
+                            ✕ ล้างตัวกรอง
+                        </button>
+                    )}
                 </div>
                 {!data ? (
                     <p className="empty" style={{ padding: '20px 0' }}>กำลังโหลด...</p>
@@ -337,8 +351,24 @@ export default function Ads() {
                     <div className="ads-tbl-scroll">
                         <div className="ads-tbl">
                             <div className="ads-tbl-head">
-                                <span>KOL</span><span>แคมเปญ</span><span>PRODUCT</span><span>TARGET</span><span>CONTENT TYPE</span><span>โพสต์</span><span>GENCODE</span><span>ID POST</span><span>Post Date</span><span>สถานะ</span>
-                                <span>วันยิงแอด</span><span>ยิงช้า</span><span>หมายเหตุ</span>
+                                <span>KOL
+                                    <ColumnFilter label="Platform" value={platform} onPick={setPlatform}
+                                        options={[{ value: '', label: 'ทุก Platform', count: countIf('platform', () => true) },
+                                        ...platformOptions.map(p => ({ value: p, label: p, count: countIf('platform', r => r.platform === p) }))]} />
+                                </span>
+                                <span>แคมเปญ</span><span>PRODUCT</span><span>TARGET</span><span>CONTENT TYPE</span><span>โพสต์</span><span>GENCODE</span><span>ID POST</span><span>Post Date</span>
+                                <span>สถานะ
+                                    <ColumnFilter label="สถานะยิงแอด" value={status} onPick={setStatus}
+                                        options={[{ value: '', label: 'ทุกสถานะ', count: countIf('status', () => true) },
+                                        ...STATUSES.map(st => ({ value: st, label: st === 'ยิงแล้ว' ? '✓ ยิงแล้ว' : st, count: countIf('status', r => r.ad_status === st) }))]} />
+                                </span>
+                                <span>วันยิงแอด</span>
+                                <span>ยิงช้า
+                                    <ColumnFilter label="ความช้า" value={late} onPick={setLate}
+                                        options={[{ value: '', label: 'ทั้งหมด', count: countIf('late', () => true) },
+                                        ...LATE_OPTS.map(([v, l]) => ({ value: v, label: l, count: countIf('late', r => lateBucket(r) === v) }))]} />
+                                </span>
+                                <span>หมายเหตุ</span>
                             </div>
                             {rows.map(r => <AdRow key={r.sub_id} row={r} onSaved={load} />)}
                         </div>
