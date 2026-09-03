@@ -71,14 +71,17 @@ function ColumnFilter({ label, value, options, onPick }) {
     const btnRef = useRef(null);
 
     // วางเมนูให้ตรงใต้ปุ่มเสมอ (คำนวณสด ไม่ใช้ค่าที่จำไว้)
+    // สำคัญ: body ตั้ง zoom ไว้ (ดู --app-zoom) — getBoundingClientRect คืนพิกัดจริงบนจอ
+    // แต่ค่า top/left ที่เราตั้งจะถูกคูณด้วย zoom อีกรอบ จึงต้องหารกลับก่อน
+    // ไม่งั้นเมนูจะไปโผล่ไกลกว่าที่ควร และหลุดจอไปเลยถ้าคอลัมน์อยู่ทางขวา
     const place = useCallback(() => {
         const el = btnRef.current;
         if (!el) return;
         const r = el.getBoundingClientRect();
-        setPos({
-            top: r.bottom + 6,
-            left: Math.max(8, Math.min(r.left, window.innerWidth - 210))
-        });
+        const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+        const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+        const left = Math.max(8, Math.min(r.left, vw - 210));
+        setPos({ top: (r.bottom + 6) / z, left: left / z });
     }, []);
 
     useEffect(() => {
