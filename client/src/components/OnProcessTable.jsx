@@ -159,6 +159,7 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
             {showPerf && (
                 <PerfModal
                     sub={sub}
+                    group={group}
                     fetchUrl={perfFetchUrl}
                     onClose={() => setShowPerf(false)}
                     onSave={async (payload) => { await putSubmission(sub.id, payload); reload(); }}

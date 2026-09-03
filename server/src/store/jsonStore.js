@@ -1170,6 +1170,8 @@ const reports = {
 
         const subs = db.submissions.filter(s => s.project_id === p.id && s.status === 'confirmed');
         const rows = subs.map((s, i) => {
+            // กลุ่มโฆษณาที่ KOL คนนี้สังกัด — เอา Content Format ที่บรีฟไว้มาใช้
+            const grp = Array.isArray(p.ad_groups) ? p.ad_groups.find(g => g.key === s.group_key) : null;
             // ผลงานคอนเทนต์ — ตัวเลขจริงจากคลิป ไม่ใช่จากการยิงแอด
             const views = Number(s.views) || 0;
             const likes = Number(s.likes) || 0, comments = Number(s.comments) || 0, saves = Number(s.saves) || 0, shares = Number(s.shares) || 0;
@@ -1193,7 +1195,10 @@ const reports = {
                 cost: fee, ad_spend: adSpend, total_cost: cost, reach,
                 link: s.post_url || s.link_account || null,
                 cpm, cpe, performance: good ? 'Good' : 'Improve', posted, boosted,
-                views, likes, comments, saves, shares, engagement, er, format: s.content_format || null
+                views, likes, comments, saves, shares, engagement, er,
+                // Content Format ยึดจากที่บรีฟไว้ตอนตั้งแคมเปญ
+                // s.content_format คือของเก่าที่เคยกรอกมือก่อนเปลี่ยนวิธี เก็บไว้เป็น fallback
+                format: (grp && grp.content_format) || s.content_format || null
             };
         });
 

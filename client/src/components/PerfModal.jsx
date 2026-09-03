@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Icon from './Icon.jsx';
 import { api } from '../api/client.js';
-import { CONTENT_FORMATS } from '../data/contentFormats.js';
 
 
 
@@ -9,14 +8,18 @@ import { CONTENT_FORMATS } from '../data/contentFormats.js';
  * โมดัลกรอกผลงานคอนเทนต์ (Views/Engagement) — กรอกมือ หรือกด "ดึงจาก TikTok"
  * props:
  *   sub          = submission
+ *   group        = ad_group ที่ KOL คนนี้สังกัด (เอา Content Format ที่บรีฟไว้มาแสดง)
  *   fetchUrl     = endpoint สำหรับดึงจาก TikTok (เช่น `/ads/${sub.id}/fetch-tiktok` หรือ team route)
  *   onSave(payload) = async ผู้เรียกยิง API เอง
  *   onClose()
  */
-export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
+export default function PerfModal({ sub, group, fetchUrl, onSave, onClose }) {
+    // Content Format ยึดจากตอนตั้งแคมเปญ ไม่ให้เลือกซ้ำตรงนี้
+    // ของเก่าที่เคยเลือกไว้เองก่อนเปลี่ยนวิธี ยังแสดงเป็น fallback
+    const briefFormat = group?.content_format || sub.content_format || null;
     const [f, setF] = useState({
         views: sub.views || '', likes: sub.likes || '', comments: sub.comments || '',
-        saves: sub.saves || '', shares: sub.shares || '', content_format: sub.content_format || ''
+        saves: sub.saves || '', shares: sub.shares || ''
     });
     const [saving, setSaving] = useState(false);
     const [fetching, setFetching] = useState(false);
@@ -48,7 +51,7 @@ export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
         try {
             await onSave({
                 views: num(f.views), likes: num(f.likes), comments: num(f.comments),
-                saves: num(f.saves), shares: num(f.shares), content_format: f.content_format || null
+                saves: num(f.saves), shares: num(f.shares)
             });
             onClose();
         } catch (err) { alert(err.message); }
@@ -69,10 +72,9 @@ export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
                 <div className="field-row">
                     <div className="field"><label>Views (ยอดวิว)</label><input inputMode="numeric" value={f.views} onChange={e => up('views', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
                     <div className="field"><label>Content Format</label>
-                        <select value={f.content_format} onChange={e => up('content_format', e.target.value)}>
-                            <option value="">— เลือก —</option>
-                            {CONTENT_FORMATS.map(x => <option key={x} value={x}>{x}</option>)}
-                        </select>
+                        <div className="perf-readonly" title="ตั้งไว้ตอนสร้างแคมเปญ — แก้ได้ที่หน้าแก้ไขแคมเปญ">
+                            {briefFormat || <span className="muted">ยังไม่ได้ระบุตอนตั้งแคมเปญ</span>}
+                        </div>
                     </div>
                 </div>
                 <div className="field-row">
