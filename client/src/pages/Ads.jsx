@@ -16,6 +16,14 @@ const fmtNum = n => {
     if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
     return String(v);
 };
+// ระดับความช้าจากจำนวนวัน — ใช้ทั้งสีป้ายในตารางและตัวกรอง จะได้ไม่หลุดกัน
+//   เขียว ≤ 3 วัน (รวมยิงตรงวัน) · เหลือง 4-5 วัน · แดง 6 วันขึ้นไป
+const lateLevel = d => (d <= 3 ? 'ontime' : d <= 5 ? 'warn' : 'bad');
+const LATE_OPTS = [
+    ['ontime', 'ไม่เกิน 3 วัน'],
+    ['warn', 'ช้า 4-5 วัน'],
+    ['bad', 'ช้า 6 วันขึ้นไป'],
+];
 // จำนวนวันระหว่าง 2 วันที่ (to - from) เป็นจำนวนวัน (คืน null ถ้าข้อมูลไม่ครบ)
 function daysBetween(from, to) {
     if (!from || !to) return null;
@@ -115,7 +123,9 @@ function ColumnFilter({ label, value, options, onPick }) {
                         <button key={o.value || 'all'} type="button" role="menuitem"
                             className={'colf-item' + (value === o.value ? ' on' : '')}
                             onClick={() => { onPick(o.value); setOpen(false); }}>
-                            <span className="colf-item-label">{o.label}</span>
+                            <span className="colf-item-label">
+                                {o.dot && <i className={'colf-dot ' + o.dot} />}{o.label}
+                            </span>
                             <span className="colf-item-count">{o.count}</span>
                         </button>
                     ))}
@@ -221,7 +231,7 @@ function AdRow({ row, onSaved }) {
                     ? <span className="muted">—</span>
                     : lateDays <= 0
                         ? <span className="late-chip ontime" title="ยิงแอดในวันเดียวกับที่ลงคลิป">ตรงเวลา</span>
-                        : <span className={'late-chip ' + (lateDays <= 3 ? 'warn' : 'bad')} title={`ยิงแอดช้ากว่าวันลงคลิป ${lateDays} วัน`}>ช้า {lateDays} วัน</span>}
+                        : <span className={'late-chip ' + lateLevel(lateDays)} title={`ยิงแอดช้ากว่าวันลงคลิป ${lateDays} วัน`}>ช้า {lateDays} วัน</span>}
             </div>
             <div className="ads-cell ads-note">
                 <input value={note} onChange={e => setNote(e.target.value)} onBlur={saveNote}
@@ -260,11 +270,12 @@ export default function Ads() {
     const allRows = data?.rows || [];
 
     // จัดกลุ่มความช้า — นับเฉพาะโพสต์ที่ยิงแล้วและมีวันครบทั้งสองฝั่ง
+    // เขียว = ช้าไม่เกิน 3 วัน (รวมยิงตรงวัน) · เหลือง = 4-5 วัน · แดง = 6 วันขึ้นไป
     const lateBucket = r => {
         if (r.ad_status !== 'ยิงแล้ว' || !r.post_date || !r.ad_end) return null;
         const d = daysBetween(r.post_date, r.ad_end);
         if (d === null) return null;
-        return d <= 0 ? 'ontime' : d <= 3 ? 'warn' : 'bad';
+        return lateLevel(d);
     };
     // skip = ข้ามตัวกรองตัวนั้น ใช้ตอนนับเลขบนปุ่ม (เลขบอกว่า "ถ้ากดปุ่มนี้จะเหลือกี่รายการ")
     const matches = (r, skip) =>
@@ -278,7 +289,6 @@ export default function Ads() {
 
     const countIf = (skip, pred) => allRows.filter(r => matches(r, skip) && pred(r)).length;
     const platformOptions = [...new Set(allRows.map(r => r.platform).filter(Boolean))].sort();
-    const LATE_OPTS = [['ontime', 'ตรงเวลา'], ['warn', 'ช้า 1-3 วัน'], ['bad', 'ช้าเกิน 3 วัน']];
     const hasFilter = !!(platform || status || late);
     // ค่า insight เพิ่มเติม (คำนวณจากข้อมูลที่มี)
     const topBrand = s && s.by_brand && s.by_brand.length ? s.by_brand[0] : null;
@@ -383,7 +393,7 @@ export default function Ads() {
                                 <span>ยิงช้า
                                     <ColumnFilter label="ความช้า" value={late} onPick={setLate}
                                         options={[{ value: '', label: 'ทั้งหมด', count: countIf('late', () => true) },
-                                        ...LATE_OPTS.map(([v, l]) => ({ value: v, label: l, count: countIf('late', r => lateBucket(r) === v) }))]} />
+                                        ...LATE_OPTS.map(([v, l]) => ({ value: v, label: l, dot: v, count: countIf('late', r => lateBucket(r) === v) }))]} />
                                 </span>
                                 <span>หมายเหตุ</span>
                             </div>
