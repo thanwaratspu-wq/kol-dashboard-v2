@@ -642,6 +642,7 @@ const dashboard = {
                 kol_id: s.id, name: s.account_name, platform: s.platform || null,
                 brand: (projById[s.project_id] || {}).brand || null,   // แบรนด์มาจากแคมเปญที่ KOL คนนี้สังกัด
                 product: s.product || null,
+                post_url: s.post_url || null,
                 fee, ad_spend: adSpend, cost,
                 views,                                  // ยอดวิวคอนเทนต์ ไม่ใช่ reach จากแอด
                 ad_reach: Number(s.ad_reach) || 0,      // เก็บไว้เทียบ ไม่ได้ใช้จัดอันดับ
@@ -670,19 +671,31 @@ const dashboard = {
             const rCpm = spread(scored, k => k.cpm);
             const withEng = scored.filter(k => k.engagement_total > 0);
             const rCpe = withEng.length ? spread(withEng, k => k.cpe) : { min: 0, max: 0 };
+            // บอกว่าค่านี้ดีสุด/แย่สุดในกลุ่มไหม (ไว้อธิบายที่มาของคะแนน)
+            const edge = (val, r, lowerIsBetter) => {
+                if (r.max === r.min) return 'เท่ากันทั้งกลุ่ม';
+                if (val === (lowerIsBetter ? r.min : r.max)) return 'ดีที่สุดในกลุ่ม';
+                if (val === (lowerIsBetter ? r.max : r.min)) return 'แย่ที่สุดในกลุ่ม';
+                return null;
+            };
             kolRows.forEach(k => {
-                if (!k.measured) { k.score = null; return; }
+                if (!k.measured) { k.score = null; k.score_parts = null; return; }
                 // ไม่มี engagement เลย = แย่สุดของแกน CPE (ไม่ใช่ดีสุด แม้ตัวเลข cpe จะเป็น 0)
-                const cpeScore = k.engagement_total > 0 ? norm(k.cpe, rCpe, true) : 0;
-                k.score = Number((100 * (
-                    SCORE_W.er * norm(k.engagement || 0, rEr) +
-                    SCORE_W.views * norm(k.views, rVw) +
-                    SCORE_W.cpm * norm(k.cpm, rCpm, true) +
-                    SCORE_W.cpe * cpeScore
-                )).toFixed(1));
+                const nEr = norm(k.engagement || 0, rEr);
+                const nVw = norm(k.views, rVw);
+                const nCpm = norm(k.cpm, rCpm, true);
+                const nCpe = k.engagement_total > 0 ? norm(k.cpe, rCpe, true) : 0;
+                const pct = w => Math.round(w * 100);
+                k.score_parts = [
+                    { key: 'er', label: 'Engagement Rate', value: k.engagement || 0, unit: '%', weight: pct(SCORE_W.er), earned: Number((SCORE_W.er * nEr * 100).toFixed(1)), better: 'สูง', note: edge(k.engagement || 0, rEr, false) },
+                    { key: 'views', label: 'ยอดวิว', value: k.views, unit: '', weight: pct(SCORE_W.views), earned: Number((SCORE_W.views * nVw * 100).toFixed(1)), better: 'สูง', note: edge(k.views, rVw, false) },
+                    { key: 'cpm', label: 'CPM', value: k.cpm, unit: '฿', weight: pct(SCORE_W.cpm), earned: Number((SCORE_W.cpm * nCpm * 100).toFixed(1)), better: 'ต่ำ', note: edge(k.cpm, rCpm, true) },
+                    { key: 'cpe', label: 'CPE', value: k.cpe, unit: '฿', weight: pct(SCORE_W.cpe), earned: Number((SCORE_W.cpe * nCpe * 100).toFixed(1)), better: 'ต่ำ', note: k.engagement_total > 0 ? edge(k.cpe, rCpe, true) : 'ยังไม่มี engagement' }
+                ];
+                k.score = Number(k.score_parts.reduce((a, p) => a + p.earned, 0).toFixed(1));
             });
         } else {
-            kolRows.forEach(k => { k.score = null; });
+            kolRows.forEach(k => { k.score = null; k.score_parts = null; });
         }
 
         const topKols = kolRows
@@ -692,6 +705,10 @@ const dashboard = {
                 (b.views - a.views)                     // ตัดเสมอด้วยยอดวิว
             )
             .slice(0, 20);
+        // อันดับในกลุ่มที่เอามาเทียบคะแนนกัน (ใช้บอกในหน้าอธิบายคะแนน)
+        let rank = 0;
+        topKols.forEach(k => { k.score_rank = k.measured ? ++rank : null; });
+        topKols.forEach(k => { k.score_pool = scored.length; });
 
         // 7) สรุปตามแบรนด์ (งบที่วางไว้ + จำนวน KOL ที่คัดเลือก)
         const brandMap = {};

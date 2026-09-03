@@ -586,9 +586,39 @@ a { text-decoration: none; color: inherit; }
 /* ============ KOL ANALYTICS ============ */
 /* ตาราง Top Influencer — คอลัมน์เยอะ ให้เลื่อนแนวนอนในกรอบตัวเอง หน้าไม่เลื่อนตาม */
 .ti-scroll { overflow-x: auto; }
-.ti-table { min-width: 1290px; }
-.ti-score { display: inline-block; min-width: 42px; padding: 2px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--mint-dark); font-weight: 800; font-size: 12.5px; }
+.ti-table { min-width: 1350px; }
+.ti-score {
+    display: inline-block; min-width: 42px; padding: 3px 10px; border-radius: 999px;
+    background: var(--bg-soft); color: var(--mint-dark); font: inherit; font-weight: 800; font-size: 12.5px;
+    border: 1px solid transparent; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.ti-score:hover { border-color: var(--mint); background: #dcefe5; }
+.ti-score:focus-visible { outline: 2px solid var(--mint); outline-offset: 1px; }
 .ti-table td.num, .ti-table th.num { font-variant-numeric: tabular-nums; }
+
+/* โมดัลอธิบายที่มาของคะแนน */
+.sc-top { display: flex; align-items: center; gap: 18px; margin: 4px 0 16px; flex-wrap: wrap; }
+.sc-total { text-align: center; background: var(--bg-soft); border-radius: 14px; padding: 12px 20px; flex-shrink: 0; }
+.sc-total-v { font-size: 31.5px; font-weight: 800; color: var(--mint-dark); line-height: 1; font-variant-numeric: tabular-nums; }
+.sc-total-k { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.sc-meta { font-size: 13px; line-height: 1.7; text-align: left; }
+.sc-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 11px; }
+.sc-table { border-collapse: collapse; width: 100%; min-width: 520px; }
+.sc-table th {
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--bg-soft);
+}
+.sc-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; text-align: left; }
+.sc-table tfoot td { padding: 10px 12px; font-size: 13.5px; background: var(--bg-soft); border-bottom: 0; }
+.sc-table th.num, .sc-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sc-pts { font-weight: 800; }
+.sc-pts.good { color: var(--mint-dark); }
+.sc-pts.mid { color: #b7791f; }
+.sc-pts.bad { color: var(--danger); }
+.sc-verdict { margin-top: 14px; background: var(--bg-soft); border-radius: 11px; padding: 13px 16px; font-size: 13px; text-align: left; }
+.sc-verdict b { display: block; margin-bottom: 5px; color: var(--mint-dark); }
+.sc-verdict ul { margin: 0; padding-inline-start: 18px; line-height: 1.75; }
+.sc-formula { margin-top: 12px; font-size: 11.5px; line-height: 1.7; text-align: left; }
 .ti-more {
     display: block; width: 100%; padding: 11px; border: none; border-top: 1px solid var(--border);
     background: var(--bg-soft); color: var(--mint-dark); font: inherit; font-size: 12.5px;
