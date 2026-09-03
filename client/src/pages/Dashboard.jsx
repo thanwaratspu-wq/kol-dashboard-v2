@@ -199,7 +199,6 @@ export default function Dashboard() {
                             <tr>
                                 <th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th><th>Brand</th><th>Product</th>
                                 <th className="num">ค่าตัวรวม</th>
-                                <th className="num">ยอดวิว</th>
                                 <th className="num">Views</th><th className="num">Likes</th><th className="num">Comments</th>
                                 <th className="num">Saves</th><th className="num">Shares</th>
                                 <th className="num">Engagement</th>
@@ -208,7 +207,7 @@ export default function Dashboard() {
                         </thead>
                         <tbody>
                             {topKols.length === 0 ? (
-                                <tr><td colSpan="15" className="empty">ยังไม่มีข้อมูล</td></tr>
+                                <tr><td colSpan="14" className="empty">ยังไม่มีข้อมูล</td></tr>
                             ) : shownKols.map((k, i) => (
                                 <tr key={k.kol_id}>
                                     <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
@@ -218,7 +217,6 @@ export default function Dashboard() {
                                     <td><ProductSummary value={k.product} max={2} /></td>
                                     <td className="num">{fmtMoney(k.fee)}</td>
                                     <td className="num">{fmtNum(k.views)}</td>
-                                    <td className="num">{fmtNum(k.content_views)}</td>
                                     <td className="num">{fmtNum(k.likes)}</td>
                                     <td className="num">{fmtNum(k.comments)}</td>
                                     <td className="num">{fmtNum(k.saves)}</td>

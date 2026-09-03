@@ -585,32 +585,53 @@ const dashboard = {
         const cpe = 0; // ยังไม่มีข้อมูล engagement ราย KOL จาก submissions
 
         // 6) Top KOLs — ส่ง 20 อันดับ (หน้าเว็บโชว์ 5 อันดับแรก ที่เหลือกดดูเพิ่มได้)
-        // เรียงตาม Reach จากแอดก่อน ถ้าเท่ากันใช้ยอดวิวคอนเทนต์ตัดสิน
+        //
+        // ยอดทั้งหมดมาจาก "คอนเทนต์จริงของคลิป" (กรอกที่แท็บ On Process)
+        // ไม่ใช่จากการยิงแอด — จึงวัดได้ทั้งคนที่ยิงแอดแล้วและยังไม่ยิง
+        //   CPM = ค่าตัว / (ยอดวิว / 1000)      ยิ่งต่ำยิ่งคุ้ม
+        //   CPE = ค่าตัว / engagement รวม        ยิ่งต่ำยิ่งคุ้ม
+        // (ไม่เดา engagement เป็น % ของ reach แบบที่หน้า Report ทำอยู่ เพราะมีตัวเลขจริงแล้ว)
+        //
+        // เกณฑ์จัดอันดับ เรียงตามลำดับความสำคัญ:
+        //   1) คนที่มีข้อมูลคอนเทนต์แล้ว อยู่เหนือคนที่ยังไม่กรอก
+        //   2) ผ่านเกณฑ์คุ้มค่า (CPM <= 28 และ CPE <= 1.5) — เกณฑ์เดียวกับ Good Performance ในหน้า Report
+        //   3) Engagement rate สูงกว่า = คอนเทนต์มีคุณภาพกว่า
+        //   4) ยอดวิวมากกว่า = เข้าถึงคนได้กว้างกว่า
+        const GOOD_CPM = 28, GOOD_CPE = 1.5;
         const topKols = [...subs]
             .map(s => {
-                const reach = Number(s.ad_reach) || 0;   // ยอดจากการยิงแอด (คอลัมน์ "ยอดวิว" เดิม)
-                const views = Number(s.views) || 0;      // ยอดวิวคอนเทนต์ (กรอกจากแท็บ On Process)
+                const views = Number(s.views) || 0;        // ยอดวิวคอนเทนต์
                 const likes = Number(s.likes) || 0;
                 const comments = Number(s.comments) || 0;
                 const saves = Number(s.saves) || 0;
                 const shares = Number(s.shares) || 0;
                 const engagementTotal = likes + comments + saves + shares;
                 const fee = Number(s.budget) || 0;
+                const cpm = views > 0 ? Number((fee / (views / 1000)).toFixed(2)) : 0;
+                const cpe = engagementTotal > 0 ? Number((fee / engagementTotal).toFixed(2)) : 0;
+                const er = views > 0 ? Number(((engagementTotal / views) * 100).toFixed(2)) : null;
+                const measured = views > 0;                // กรอกผลงานแล้วหรือยัง
                 return {
                     kol_id: s.id, name: s.account_name, platform: s.platform || null,
                     brand: (projById[s.project_id] || {}).brand || null,   // แบรนด์มาจากแคมเปญที่ KOL คนนี้สังกัด
                     product: s.product || null,
-                    views: reach, fee,
-                    // engagement = อัตราส่วนเป็น % (ฟิลด์เดิม หน้าเว็บเติม % ต่อท้ายให้)
-                    engagement: views > 0 ? Number(((engagementTotal / views) * 100).toFixed(2)) : null,
-                    // ผลงานคอนเทนต์รายคน (เพิ่มใหม่)
-                    content_views: views, likes, comments, saves, shares,
+                    fee,
+                    views,                                  // ยอดวิวคอนเทนต์ (เดิมช่องนี้เป็น reach จากแอด)
+                    ad_reach: Number(s.ad_reach) || 0,      // เก็บไว้ให้ดูเทียบ ไม่ได้ใช้จัดอันดับแล้ว
+                    likes, comments, saves, shares,
                     engagement_total: engagementTotal,
-                    cpm: reach > 0 ? Math.round(fee / (reach / 1000)) : 0,
-                    cpe: engagementTotal > 0 ? Number((fee / engagementTotal).toFixed(2)) : 0
+                    engagement: er,                         // อัตราส่วน % (หน้าเว็บเติม % ต่อท้าย)
+                    cpm, cpe,
+                    measured,
+                    good: measured && cpm > 0 && cpm <= GOOD_CPM && cpe > 0 && cpe <= GOOD_CPE
                 };
             })
-            .sort((a, b) => b.views - a.views || b.content_views - a.content_views)
+            .sort((a, b) =>
+                (b.measured - a.measured) ||               // มีข้อมูลก่อน
+                (b.good - a.good) ||                       // ผ่านเกณฑ์คุ้มค่าก่อน
+                ((b.engagement || 0) - (a.engagement || 0)) || // ER สูงกว่า
+                (b.views - a.views)                        // ยอดวิวมากกว่า
+            )
             .slice(0, 20);
 
         // 7) สรุปตามแบรนด์ (งบที่วางไว้ + จำนวน KOL ที่คัดเลือก)
