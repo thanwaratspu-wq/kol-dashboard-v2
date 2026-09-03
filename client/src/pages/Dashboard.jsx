@@ -197,12 +197,12 @@ export default function Dashboard() {
                         <thead>
                             <tr>
                                 <th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th>
-                                <th className="num">ยอดวิว (แอด)</th>
+                                <th className="num">ค่าตัวรวม</th>
+                                <th className="num">ยอดวิว</th>
                                 <th className="num">Views</th><th className="num">Likes</th><th className="num">Comments</th>
                                 <th className="num">Saves</th><th className="num">Shares</th>
                                 <th className="num">Engagement</th>
                                 <th className="num">CPM</th><th className="num">CPE</th>
-                                <th className="num">ค่าตัวรวม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -213,6 +213,7 @@ export default function Dashboard() {
                                     <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
                                     <td><strong>{k.name}</strong></td>
                                     <td>{k.platform ? <span className="tag">{k.platform}</span> : '—'}</td>
+                                    <td className="num">{fmtMoney(k.fee)}</td>
                                     <td className="num">{fmtNum(k.views)}</td>
                                     <td className="num">{fmtNum(k.content_views)}</td>
                                     <td className="num">{fmtNum(k.likes)}</td>
@@ -222,7 +223,6 @@ export default function Dashboard() {
                                     <td className="num">{k.engagement != null ? k.engagement + '%' : '—'}</td>
                                     <td className="num">{k.cpm ? fmtMoney(k.cpm) : '—'}</td>
                                     <td className="num">{k.cpe ? fmtMoney(k.cpe) : '—'}</td>
-                                    <td className="num">{fmtMoney(k.fee)}</td>
                                 </tr>
                             ))}
                         </tbody>
