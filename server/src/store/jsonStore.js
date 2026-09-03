@@ -598,6 +598,7 @@ const dashboard = {
                 const fee = Number(s.budget) || 0;
                 return {
                     kol_id: s.id, name: s.account_name, platform: s.platform || null,
+                    brand: (projById[s.project_id] || {}).brand || null,   // แบรนด์มาจากแคมเปญที่ KOL คนนี้สังกัด
                     product: s.product || null,
                     views: reach, fee,
                     // engagement = อัตราส่วนเป็น % (ฟิลด์เดิม หน้าเว็บเติม % ต่อท้ายให้)
