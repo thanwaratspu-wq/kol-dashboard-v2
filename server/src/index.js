@@ -119,7 +119,8 @@ app.use('/api/agency', require('./routes/agency')); // สาธารณะ (Ag
 // error handler
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.message);
-    res.status(500).json({ status: 'error', message: err.message || 'Internal server error' });
+    // err.status = ข้อผิดพลาดที่ตั้งใจให้เกิด (เช่น 409 ข้อมูลถูกล็อก) ไม่ใช่บั๊กของระบบ
+    res.status(err.status || 500).json({ status: 'error', message: err.message || 'Internal server error' });
 });
 
 app.listen(PORT, () => {

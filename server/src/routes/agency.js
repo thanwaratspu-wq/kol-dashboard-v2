@@ -151,7 +151,7 @@ router.put('/:token/submissions/:subId', async (req, res, next) => {
             draft_link, draft_link2, draft_link3, draft_link4, draft_link5,
             gencode, feedback, feedback2, feedback3, feedback4, feedback5,
             approved, draft_status, post_url, post_date, id_post, code_expire
-        });
+        }, link.name ? `${link.name} (เอเจนซี่)` : 'เอเจนซี่');   // ฝั่งนี้ไม่มีบัญชีผู้ใช้ ใช้ชื่อจากลิงก์แทน
         if (!data) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
         res.json({ status: 'success', data });
     } catch (err) { next(err); }

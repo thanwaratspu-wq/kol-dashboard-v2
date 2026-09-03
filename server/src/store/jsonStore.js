@@ -981,22 +981,38 @@ const submissions = {
     async update(subId, projectId, fields, byName) {
         const s = db.submissions.find(x => x.id === Number(subId) && (projectId == null || x.project_id === Number(projectId)));
         if (!s) return null;
-        // จำค่าเดิมของช่องที่ต้องบันทึกวันที่นำเข้าระบบ (ต้องเทียบก่อนเขียนทับ)
+        // ช่องที่ต้องบันทึกว่าใครแก้ล่าสุดเมื่อไหร่ + ล็อกหลังยิงแอด
         const STAMP_F = ['post_url', 'gencode', 'id_post'];
         const filled = v => !!(v !== null && v !== undefined && String(v).trim());
-        const wasFilled = {};
-        STAMP_F.forEach(f => { wasFilled[f] = filled(s[f]); });
+        const same = (a, b) => String(a ?? '').trim() === String(b ?? '').trim();
+
+        // ยิงแอดไปแล้ว = ล็อกข้อมูลชุดนี้ ห้ามแก้ เพราะเป็นข้อมูลที่ใช้อ้างอิงกับแอดที่ยิงไปแล้ว
+        if (s.ad_status === 'ยิงแล้ว') {
+            const blocked = STAMP_F.filter(f => fields[f] !== undefined && !same(fields[f], s[f]));
+            if (blocked.length) {
+                const LABEL = { post_url: 'ลิงก์คลิป', gencode: 'Gencode', id_post: 'ID Post' };
+                const e = new Error(`ยิงแอดไปแล้ว จึงแก้ ${blocked.map(f => LABEL[f]).join(' / ')} ไม่ได้ — ถ้าต้องแก้จริง ให้กดสถานะกลับเป็น "ยังไม่ยิง" ก่อน`);
+                e.status = 409;
+                throw e;
+            }
+        }
+        const before = {};
+        STAMP_F.forEach(f => { before[f] = s[f]; });
         for (const k of ['account_name', 'followers', 'platform', 'product', 'agency', 'budget', 'link_account', 'concept', 'gen_date', 'group_key', 'tier', 'status', 'draft_link', 'draft_link2', 'draft_link3', 'draft_link4', 'draft_link5', 'gencode', 'feedback', 'feedback2', 'feedback3', 'feedback4', 'feedback5', 'approved', 'draft_status', 'post_url', 'post_date', 'id_post', 'code_expire', 'ad_status', 'ad_spend', 'ad_reach', 'ad_start', 'ad_end', 'ad_note', 'team_note', 'views', 'likes', 'comments', 'saves', 'shares', 'content_format', 'perf_synced_at']) {
             if (fields[k] !== undefined) s[k] = fields[k];
         }
-        // บันทึก "วันที่นำเข้าระบบ" ของลิงก์คลิป / Gencode / ID Post
-        // นับตอนที่ช่องว่างเปลี่ยนเป็นมีค่าครั้งแรก — แก้ไขทีหลังไม่เปลี่ยนวันที่
-        // ถ้าลบค่าออก ล้างวันที่ทิ้งด้วย จะได้ไม่เหลือวันที่ค้างของข้อมูลที่ไม่มีแล้ว
+        // บันทึกว่า "ใครแก้ล่าสุดเมื่อไหร่" ของลิงก์คลิป / Gencode / ID Post
+        // ขยับทุกครั้งที่ค่าเปลี่ยนจริง (ส่งค่าเดิมมาซ้ำไม่นับ) — ล้างทิ้งเมื่อลบค่าออก
         STAMP_F.forEach(f => {
             if (fields[f] === undefined) return;
-            const nowFilled = filled(s[f]);
-            if (!wasFilled[f] && nowFilled) s[f + '_at'] = now();
-            else if (wasFilled[f] && !nowFilled) s[f + '_at'] = null;
+            if (same(before[f], s[f])) return;          // ค่าไม่ได้เปลี่ยน ไม่ต้องขยับเวลา
+            if (filled(s[f])) {
+                s[f + '_at'] = now();
+                s[f + '_by'] = byName || null;
+            } else {
+                s[f + '_at'] = null;
+                s[f + '_by'] = null;
+            }
         });
 
         // ปรับ timestamp ตามหมวดของข้อมูลที่แก้ (ใช้ทำแจ้งเตือนแท็บ)
@@ -1054,10 +1070,10 @@ const ads = {
                     id_post: s.id_post || null,
                     post_url: s.post_url,
                     post_date: s.post_date || null,
-                    // วันที่นำเข้าระบบของแต่ละช่อง (ว่าง = ยังไม่เคยบันทึก หรือเป็นข้อมูลเก่าก่อนมีฟีเจอร์นี้)
-                    post_url_at: s.post_url_at || null,
-                    gencode_at: s.gencode_at || null,
-                    id_post_at: s.id_post_at || null,
+                    // ใครแก้ล่าสุดเมื่อไหร่ (ว่าง = ข้อมูลเก่าก่อนมีฟีเจอร์นี้)
+                    post_url_at: s.post_url_at || null, post_url_by: s.post_url_by || null,
+                    gencode_at: s.gencode_at || null, gencode_by: s.gencode_by || null,
+                    id_post_at: s.id_post_at || null, id_post_by: s.id_post_by || null,
                     project_id: s.project_id,
                     project_name: p ? p.name : null,
                     brand: p ? (p.brand || 'อื่นๆ') : 'อื่นๆ',

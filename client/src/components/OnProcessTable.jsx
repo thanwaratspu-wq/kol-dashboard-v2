@@ -32,6 +32,11 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
     const [editing, setEditing] = useState(false); // false = ล็อก (อ่านอย่างเดียว), true = กำลังแก้ไข
     const unlocked = directEdit || editing; // directEdit (ฝั่งเอเจนซี่) = กรอกได้เลยไม่ต้องกดแก้ไข
     const noIdPost = NO_IDPOST.includes(sub.platform); // แพลตฟอร์มนี้ไม่ใช้ ID Post
+    // ยิงแอดไปแล้ว = ล็อก ลิงก์โพสต์ / Gencode / ID Post ห้ามแก้
+    // เพราะเป็นข้อมูลที่แอดที่ยิงไปแล้วอ้างอิงอยู่ (ฝั่ง server ปฏิเสธซ้ำอีกชั้น)
+    const adLocked = sub.ad_status === 'ยิงแล้ว';
+    const canEditPost = unlocked && !adLocked;
+    const lockTip = 'ยิงแอดไปแล้ว แก้ไม่ได้ — ถ้าต้องแก้จริง ให้กดสถานะกลับเป็น "ยังไม่ยิง" ที่หน้า ADS ก่อน';
 
     // มีการแก้ไขที่ยังไม่บันทึกหรือไม่ (เทียบกับค่าที่บันทึกไว้ล่าสุด = sub prop)
     const dirty =
@@ -102,12 +107,17 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
                     📊 {hasPerf ? `${Number(sub.views).toLocaleString()} วิว` : 'Perf'}
                 </button>
             </div>
-            <div className="proc-cell"><input type="url" value={postUrl} onChange={e => setPostUrl(e.target.value)} placeholder="ลิงก์โพสต์" disabled={!unlocked} /></div>
+            <div className="proc-cell" title={adLocked ? lockTip : undefined}>
+                <input type="url" value={postUrl} onChange={e => setPostUrl(e.target.value)} placeholder="ลิงก์โพสต์" disabled={!canEditPost} />
+                {adLocked && <span className="proc-locked">🔒 ยิงแอดแล้ว</span>}
+            </div>
             <div className="proc-cell"><input type="date" value={postDate} onChange={e => setPostDate(e.target.value)} disabled={!unlocked} /></div>
-            <div className="proc-cell"><input value={gencode} onChange={e => setGencode(e.target.value)} placeholder="Gencode" disabled={!unlocked} /></div>
-            <div className="proc-cell">{noIdPost
+            <div className="proc-cell" title={adLocked ? lockTip : undefined}>
+                <input value={gencode} onChange={e => setGencode(e.target.value)} placeholder="Gencode" disabled={!canEditPost} />
+            </div>
+            <div className="proc-cell" title={adLocked && !noIdPost ? lockTip : undefined}>{noIdPost
                 ? <span className="muted" title="แพลตฟอร์มนี้ไม่ใช้ ID Post">—</span>
-                : <input value={idPost} onChange={e => setIdPost(e.target.value)} placeholder="ID Post" disabled={!unlocked} />}</div>
+                : <input value={idPost} onChange={e => setIdPost(e.target.value)} placeholder="ID Post" disabled={!canEditPost} />}</div>
             <div className="proc-cell">
                 <select value={codeExpire} onChange={e => setCodeExpire(e.target.value)} disabled={!unlocked}>
                     {EXPIRE_OPTS.map(d => <option key={d} value={d}>{d}</option>)}
