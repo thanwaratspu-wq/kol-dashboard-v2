@@ -86,7 +86,8 @@ export default function Kols() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [product, setProduct] = useState('');
-    const [perfSort, setPerfSort] = useState('');  // ''=ตามเดิม | best=ดีสุดขึ้นก่อน | worst=แย่สุดขึ้นก่อน
+    // การเรียงลำดับตาราง — ทีละอย่าง ไม่ซ้อนกัน เริ่มต้นเรียงตามเดือนใหม่สุดก่อน
+    const [sort, setSort] = useState('month-desc'); // month-desc | month-asc | perf-best | perf-worst
     const [search, setSearch] = useState('');
 
     function load() {
@@ -121,22 +122,37 @@ export default function Kols() {
         (!product || r.product === product) &&
         matchSearch(r));
 
-    // เรียงตาม Performance — กดหัวคอลัมน์สลับไปมา
+    // คีย์เวลา = ปี*100 + เดือน เทียบข้ามปีได้ถูก (ธ.ค. 25 ต้องมาก่อน ม.ค. 26 ไม่ใช่ดูแค่ชื่อเดือน)
+    const timeKey = r => (r.year && r.month ? Number(r.year) * 100 + (MONTHS.indexOf(r.month) + 1) : 0);
     // "ยังไม่ประเมิน" ให้อยู่ท้ายสุดเสมอ เพราะไม่ใช่ผลที่วัดได้ ไม่ควรไปแทรกกลาง
     const RANK = { Good: 0, Improve: 1 };
-    const rankOf = r => (!r.performance ? 2 : (perfSort === 'best' ? RANK[r.performance] : 1 - RANK[r.performance]));
-    const sorted = !perfSort ? shown : [...shown].sort((a, b) => {
+    const rankOf = r => (!r.performance ? 2 : (sort === 'perf-best' ? RANK[r.performance] : 1 - RANK[r.performance]));
+
+    // เรียงตามเดือน — แถวที่ไม่มีเดือนไปท้ายสุดเสมอ ไม่ว่าจะเรียงขึ้นหรือลง
+    function byMonth(a, b, asc) {
+        const ka = timeKey(a), kb = timeKey(b);
+        if (!ka && !kb) return 0;
+        if (!ka) return 1;
+        if (!kb) return -1;
+        if (ka !== kb) return asc ? ka - kb : kb - ka;
+        // เดือนเดียวกัน เรียงต่อด้วยวันที่ลงงาน (ใหม่สุดก่อน) คนที่ยังไม่ลงงานอยู่ท้าย
+        return (b.post_date || '').localeCompare(a.post_date || '');
+    }
+
+    const sorted = [...shown].sort((a, b) => {
+        if (!sort.startsWith('perf-')) return byMonth(a, b, sort === 'month-asc');
         const d = rankOf(a) - rankOf(b);
         if (d) return d;
         // กลุ่มเดียวกัน เรียงต่อด้วย CPM (ถูกกว่า = คุ้มกว่า) คนที่ยังไม่มี CPM ไปท้ายกลุ่ม
         const ca = a.cpm > 0 ? a.cpm : null, cb = b.cpm > 0 ? b.cpm : null;
-        if (ca == null && cb == null) return 0;
-        if (ca == null) return 1;
-        if (cb == null) return -1;
-        return perfSort === 'best' ? ca - cb : cb - ca;
+        if (ca == null && cb != null) return 1;
+        if (cb == null && ca != null) return -1;
+        if (ca != null && cb != null && ca !== cb) return sort === 'perf-best' ? ca - cb : cb - ca;
+        return byMonth(a, b, false);
     });
 
-    const cyclePerfSort = () => setPerfSort(v => (v === '' ? 'best' : v === 'best' ? 'worst' : ''));
+    const sortByMonth = () => setSort(v => (v === 'month-desc' ? 'month-asc' : 'month-desc'));
+    const sortByPerf = () => setSort(v => (v === 'perf-best' ? 'perf-worst' : v === 'perf-worst' ? 'month-desc' : 'perf-best'));
 
     const total = shown.length;
     const budget = shown.reduce((a, r) => a + r.cost, 0);
@@ -218,15 +234,23 @@ export default function Kols() {
                     <table className="data-table ka-table">
                         <thead>
                             <tr>
-                                <th>Month</th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
+                                <th className="ka-sort-th">
+                                    <button type="button" className={'ka-sort' + (sort.startsWith('month-') ? ' on' : '')} onClick={sortByMonth}
+                                        title={sort === 'month-desc' ? 'เรียง: เดือนใหม่สุดขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นเดือนเก่าสุดขึ้นก่อน'
+                                            : sort === 'month-asc' ? 'เรียง: เดือนเก่าสุดขึ้นก่อน — กดอีกครั้งเพื่อสลับกลับ'
+                                                : 'กดเพื่อเรียงตามเดือน'}>
+                                        Month
+                                        <span className="ka-sort-ico">{sort === 'month-desc' ? '▼' : sort === 'month-asc' ? '▲' : '⇅'}</span>
+                                    </button>
+                                </th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
                                 <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
                                 <th className="num">CPM</th><th className="num">CPE</th><th className="ka-sort-th">
-                                    <button type="button" className={'ka-sort' + (perfSort ? ' on' : '')} onClick={cyclePerfSort}
-                                        title={perfSort === 'best' ? 'เรียง: ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นไม่ผ่านขึ้นก่อน'
-                                            : perfSort === 'worst' ? 'เรียง: ไม่ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อกลับไปเรียงตามวันที่ลงงาน'
+                                    <button type="button" className={'ka-sort' + (sort.startsWith('perf-') ? ' on' : '')} onClick={sortByPerf}
+                                        title={sort === 'perf-best' ? 'เรียง: ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นไม่ผ่านขึ้นก่อน'
+                                            : sort === 'perf-worst' ? 'เรียง: ไม่ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อกลับไปเรียงตามเดือน'
                                                 : 'กดเพื่อเรียงตาม Performance'}>
                                         Performance
-                                        <span className="ka-sort-ico">{perfSort === 'best' ? '▲' : perfSort === 'worst' ? '▼' : '⇅'}</span>
+                                        <span className="ka-sort-ico">{sort === 'perf-best' ? '▲' : sort === 'perf-worst' ? '▼' : '⇅'}</span>
                                     </button>
                                 </th>
                                 <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
