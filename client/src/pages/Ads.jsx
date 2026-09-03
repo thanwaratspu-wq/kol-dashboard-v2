@@ -147,10 +147,11 @@ function AdRow({ row, onSaved }) {
                     : <span className="muted">—</span>}
             </div>
             <div className="ads-cell">
-                {row.content_type || row.media_type ? (
+                {row.content_type || row.media_type || row.group_format ? (
                     <>
                         {row.content_type && <span className="proc-ctype-chip">{row.content_type}</span>}
                         {row.media_type && <span className="proc-ctype-chip media">{row.media_type}</span>}
+                        {row.group_format && <span className="proc-ctype-chip fmt">{row.group_format}</span>}
                     </>
                 ) : <span className="muted">—</span>}
             </div>

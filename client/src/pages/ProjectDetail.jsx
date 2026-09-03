@@ -551,6 +551,10 @@ export default function ProjectDetail() {
                                                     <span className="adg-label">Photo / VDO</span>
                                                     <div className="adg-val">{g.media_type ? <span className="chip-ctype">{g.media_type}</span> : <span className="muted">—</span>}</div>
                                                 </div>
+                                                <div className="adg-field">
+                                                    <span className="adg-label">Content Format</span>
+                                                    <div className="adg-val">{g.content_format ? <span className="chip-ctype">{g.content_format}</span> : <span className="muted">—</span>}</div>
+                                                </div>
                                                 {g.brief && (
                                                     <div className="adg-field">
                                                         <span className="adg-label">บรีฟกลุ่มนี้</span>

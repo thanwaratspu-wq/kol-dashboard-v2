@@ -929,16 +929,21 @@ a { text-decoration: none; color: inherit; }
 /* คอลัมน์ Ads (เฉพาะ Dashboard) — Target + Content Type */
 .proc-tbl.with-ads { min-width: 1080px; }
 .proc-tbl.with-ads .proc-tbl-head, .proc-tbl.with-ads .proc-row {
-    grid-template-columns: 1fr 0.6fr 0.92fr 0.68fr 0.6fr 0.66fr 0.95fr 0.98fr 0.85fr 0.82fr 0.5fr 0.62fr;
+    grid-template-columns: 1fr 0.6fr 0.92fr 1.12fr 0.6fr 0.66fr 0.95fr 0.98fr 0.85fr 0.82fr 0.5fr 0.62fr;
 }
 .proc-ads-tgt { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff4ed; color: #c2591b; font-size: 10.5px; font-weight: 800; padding: 4px 8px; border-radius: 8px; }
 .proc-ctype-chip { display: inline-block; background: #f3ecff; color: #6d3fc0; font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 8px; }
+/* เซลล์ที่มีได้ถึง 3 ป้าย (Content Type / Photo-VDO / Content Format) — ยอมให้ตกบรรทัด */
+.proc-cell .proc-ctype-chip, .ads-cell .proc-ctype-chip { font-size: 10px; padding: 3px 6px; margin: 1px 1px 0 0; }
 /* ป้าย Photo / VDO — ใช้สีต่างจากประเภทคอนเทนต์ จะได้แยกออกตอนขึ้นคู่กัน */
 .proc-ctype-chip.media { background: #eef2ff; color: #4338ca; }
-/* Content Type กับ Photo/VDO วางคู่กันในแถวเดียว */
-.ctype-row { display: flex; gap: 8px; }
-.ctype-row > select { flex: 1; min-width: 0; }
-.ag-group-req { display: flex; gap: 6px; margin-top: 6px; }
+.proc-ctype-chip.fmt { background: #fff4e6; color: #b45309; }
+/* Content Type + Photo/VDO อยู่แถวบน, Content Format เต็มแถวล่าง
+   (วาง 3 ช่องในแถวเดียวแล้วช่องที่ 3 แคบจนตัวหนังสือชนลูกศร) */
+.ctype-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ctype-row > select { min-width: 0; }
+.ctype-row > select:nth-child(3) { grid-column: 1 / -1; }
+.ag-group-req { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .proc-viewdraft {
     display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--mint); background: var(--bg-soft);
     color: var(--mint-dark); font-weight: 700; font-size: 11.5px; padding: 6px 9px; border-radius: 8px; cursor: pointer;
@@ -1061,7 +1066,7 @@ a { text-decoration: none; color: inherit; }
 .ads-tbl-head, .ads-row {
     display: grid;
     /* KOL แคมเปญ PRODUCT TARGET CONTENT โพสต์ GENCODE ID_POST PostDate สถานะ วันยิงแอด ยิงช้า หมายเหตุ */
-    grid-template-columns: 1.3fr 1.15fr 0.72fr 1.05fr 0.72fr 0.5fr 1.05fr 0.95fr 0.82fr 0.9fr 1fr 0.85fr 1.3fr;
+    grid-template-columns: 1.3fr 1.15fr 0.72fr 1.05fr 1.05fr 0.5fr 1.05fr 0.95fr 0.82fr 0.9fr 1fr 0.85fr 1.3fr;
     gap: 10px; align-items: center;
 }
 .ads-note input { width: 100%; }

@@ -1071,6 +1071,7 @@ const ads = {
                     target: grp ? (grp.target || null) : null,
                     content_type: grp ? (grp.content_type || null) : null,
                     media_type: grp ? (grp.media_type || null) : null,
+                    group_format: grp ? (grp.content_format || null) : null,
                     gencode: s.gencode || null,
                     id_post: s.id_post || null,
                     post_url: s.post_url,

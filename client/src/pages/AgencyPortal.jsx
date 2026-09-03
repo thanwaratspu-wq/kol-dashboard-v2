@@ -254,10 +254,11 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
                 <div>
                     <span className="ag-group-no">กลุ่มที่ {gi + 1} <span className="adg-count">({groupProducts.length} สินค้า)</span></span>
                     {group.concept && <div className="ag-concept-top">📝 Concept: <b>{group.concept}</b></div>}
-                    {(group.content_type || group.media_type) && (
+                    {(group.content_type || group.media_type || group.content_format) && (
                         <div className="ag-group-req">
                             {group.content_type && <span className="proc-ctype-chip">{group.content_type}</span>}
                             {group.media_type && <span className="proc-ctype-chip media">{group.media_type}</span>}
+                            {group.content_format && <span className="proc-ctype-chip fmt">{group.content_format}</span>}
                         </div>
                     )}
                     <div style={{ marginTop: 8 }}>

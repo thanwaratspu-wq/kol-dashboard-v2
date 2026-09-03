@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import Icon from './Icon.jsx';
 import { api } from '../api/client.js';
+import { CONTENT_FORMATS } from '../data/contentFormats.js';
 
-const FORMATS = ['Tie-in', 'Review', 'Lifestyle', 'Review + Tie-in', 'Not specified'];
+
 
 /**
  * โมดัลกรอกผลงานคอนเทนต์ (Views/Engagement) — กรอกมือ หรือกด "ดึงจาก TikTok"
@@ -70,7 +71,7 @@ export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
                     <div className="field"><label>Content Format</label>
                         <select value={f.content_format} onChange={e => up('content_format', e.target.value)}>
                             <option value="">— เลือก —</option>
-                            {FORMATS.map(x => <option key={x} value={x}>{x}</option>)}
+                            {CONTENT_FORMATS.map(x => <option key={x} value={x}>{x}</option>)}
                         </select>
                     </div>
                 </div>
