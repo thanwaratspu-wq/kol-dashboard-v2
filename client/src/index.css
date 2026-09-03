@@ -723,6 +723,15 @@ a { text-decoration: none; color: inherit; }
 
 .perf-good { display: inline-flex; align-items: center; gap: 4px; color: var(--mint-dark); font-weight: 700; font-size: 12.5px; }
 .perf-improve { display: inline-flex; align-items: center; gap: 4px; color: #e0562b; font-weight: 700; font-size: 12.5px; }
+/* ป้ายผ่าน/ไม่ผ่านเกณฑ์ — เขียว = ผ่าน, แดง = ไม่ผ่าน, เทา = ยังไม่มีข้อมูลให้ตัดสิน */
+.perf-pill {
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    padding: 4px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+    border: 1px solid transparent; cursor: help;
+}
+.perf-pill.good { background: #e7f8f0; color: #0f7a52; border-color: #b6e8d2; }
+.perf-pill.bad  { background: #fdeaea; color: #c0271f; border-color: #f6c4c1; }
+.perf-pill.none { background: #f2f5f4; color: #8a9a93; border-color: #e4eae7; font-weight: 600; }
 
 /* ============ CAMPAIGN REPORTS ============ */
 .report-section-title { font-size: 15.5px; font-weight: 800; margin: 6px 2px 16px; }

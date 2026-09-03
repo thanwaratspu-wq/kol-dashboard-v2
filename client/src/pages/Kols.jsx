@@ -14,6 +14,36 @@ function fmtD(d) {
     return `${Number(day)}/${Number(m)}/${y.slice(2)}`;
 }
 
+// เกณฑ์ตัดสินผ่าน/ไม่ผ่าน — ต้องตรงกับ GOOD_CPM / GOOD_CPE ฝั่ง server (jsonStore.js)
+const GOOD_CPM = 28;
+const GOOD_CPE = 1.5;
+
+// ป้ายบอกว่า KOL คนนี้คุ้มค่าไหม — เขียว = ผ่านทั้ง CPM และ CPE, แดง = มีตัวใดตัวหนึ่งเกินเกณฑ์
+// ยังไม่กรอกผลงานคอนเทนต์ = ยังตัดสินไม่ได้ ขึ้นเป็นสีเทา (ไม่ใช่ "ไม่ผ่าน")
+function PerfBadge({ row }) {
+    if (!row.performance) {
+        return (
+            <span className="perf-pill none" title={`ยังตัดสินไม่ได้ เพราะยังไม่ได้กรอกผลงานคอนเทนต์
+(View / Like / Comment / Save / Share)
+
+กรอกได้ที่ปุ่ม 📊 ในหน้า On Process ของแคมเปญ`}>ยังไม่ประเมิน</span>
+        );
+    }
+    const cpmOk = row.cpm > 0 && row.cpm <= GOOD_CPM;
+    const cpeOk = row.cpe > 0 && row.cpe <= GOOD_CPE;
+    const mark = ok => (ok ? '✓ ผ่าน' : '✕ เกินเกณฑ์');
+    const tip = [
+        `CPM ฿${N(row.cpm)} (เกณฑ์ ไม่เกิน ${GOOD_CPM})  ${mark(cpmOk)}`,
+        `CPE ฿${N(row.cpe)} (เกณฑ์ ไม่เกิน ${GOOD_CPE})  ${mark(cpeOk)}`,
+        '',
+        `ต้นทุนรวม ฿${N(row.total_cost)} = ค่าตัว ฿${N(row.cost)} + ค่ายิงแอด ฿${N(row.ad_spend)}`,
+        `ยอดวิว ${N(row.views)} · Engagement ${N(row.engagement)} (ER ${row.er}%)`
+    ].join('\n');
+    return cpmOk && cpeOk
+        ? <span className="perf-pill good" title={tip}>✓ ผ่านเกณฑ์</span>
+        : <span className="perf-pill bad" title={tip}>✕ ไม่ผ่านเกณฑ์</span>;
+}
+
 export default function Kols() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
@@ -165,13 +195,7 @@ export default function Kols() {
                                     <td className="num">{N(r.cost)}</td>
                                     <td className="num">{r.cpm ? '฿' + N(r.cpm) : '—'}</td>
                                     <td className="num">{r.cpe ? '฿' + N(r.cpe) : '—'}</td>
-                                    <td>
-                                        {r.performance === 'Good'
-                                            ? <span className="perf-good" title={`CPM ≤ 28 และ CPE ≤ 1.5 (ต้นทุนรวม ${N(r.total_cost)} บาท)`}>✓ Good</span>
-                                            : r.performance === 'Improve'
-                                                ? <span className="perf-improve" title={`CPM ${N(r.cpm)} · CPE ${N(r.cpe)} — เกินเกณฑ์ CPM 28 / CPE 1.5`}>ควรปรับปรุง</span>
-                                                : <span className="muted" title="ยังไม่ได้กรอกผลงานคอนเทนต์">—</span>}
-                                    </td>
+                                    <td><PerfBadge row={r} /></td>
                                     <td>{fmtD(r.post_date)}</td>
                                     <td>{fmtD(r.gen_date)}</td>
                                     <td>{r.days ? `${r.days} Days` : '—'}</td>
