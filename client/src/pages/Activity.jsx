@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import Avatar from '../components/Avatar.jsx';
 
 // ไอคอน + สี ตามชนิดการกระทำ
@@ -86,11 +87,11 @@ export default function Activity() {
                 </label>
                 <label className="bud-month">
                     ตั้งแต่:
-                    <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+                    <DatePicker value={from} onChange={setFrom} placeholder="ตั้งแต่" />
                 </label>
                 <label className="bud-month">
                     ถึง:
-                    <input type="date" value={to} onChange={e => setTo(e.target.value)} />
+                    <DatePicker value={to} onChange={setTo} placeholder="ถึง" />
                 </label>
                 {hasFilter && <button className="btn-ghost" onClick={clearFilters}>ล้างตัวกรอง</button>}
                 <span className="inf-count" style={{ marginLeft: 'auto' }}>{logs.length} รายการ</span>

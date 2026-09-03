@@ -284,15 +284,25 @@ a { text-decoration: none; color: inherit; }
 .cp-day.sel { background: var(--grad); color: #fff; border-color: transparent; }
 
 /* ============ DATE PICKER (calendar) ============ */
-.dp { position: relative; display: inline-block; }
+.dp { position: relative; display: inline-flex; align-items: center; max-width: 100%; }
 .dp-trigger {
     display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border);
     border-radius: 11px; background: #fff; color: var(--text); font-size: 13.5px; font-weight: 600; cursor: pointer;
+    white-space: nowrap; min-width: 0; font-variant-numeric: tabular-nums;
 }
+.dp-trigger.empty { color: var(--muted); font-weight: 500; }
+.dp-trigger:not(.empty) { padding-inline-end: 30px; } /* เว้นที่ให้ปุ่มล้าง */
 .dp-trigger:hover:not(:disabled) { border-color: var(--mint); }
 .dp-trigger:disabled { opacity: .5; cursor: not-allowed; }
+/* ปุ่มล้างวันที่ — แทนความสามารถของ input type=date เดิมที่ลบค่าได้ */
+.dp-clear {
+    margin-inline-start: -26px; margin-inline-end: 6px; width: 18px; height: 18px; flex-shrink: 0;
+    border: none; border-radius: 50%; background: transparent; color: var(--muted);
+    font-size: 10px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+}
+.dp-clear:hover { background: var(--bg-soft); color: var(--text); }
 .dp-pop {
-    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; width: 280px;
+    position: fixed; z-index: 70; width: 280px;
     background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 14px;
     box-shadow: 0 16px 40px rgba(16, 133, 100, 0.18); animation: infPop .16s ease;
 }
@@ -862,7 +872,7 @@ a { text-decoration: none; color: inherit; }
 .proc-tbl { min-width: 840px; }
 .proc-tbl-head, .proc-row {
     display: grid;
-    grid-template-columns: 1.05fr 0.7fr 0.7fr 0.72fr 1.05fr 0.9fr 0.95fr 0.9fr 0.58fr 0.66fr;
+    grid-template-columns: 1.05fr 0.7fr 0.7fr 0.72fr 1.05fr 1.15fr 0.95fr 0.9fr 0.58fr 0.66fr;
     gap: 7px; align-items: center;
 }
 .proc-tbl-head { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .3px; padding: 0 4px 9px; }
@@ -873,6 +883,12 @@ a { text-decoration: none; color: inherit; }
 }
 .proc-row input:focus, .proc-row select:focus { outline: none; border-color: var(--mint); box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
 .proc-row input:disabled, .proc-row select:disabled { background: #f1f5f3; color: #64766d; cursor: default; border-color: #e6ece9; }
+/* ปฏิทินในตาราง On Process — ย่อให้ขนาดเท่าช่องกรอกอื่นในแถว */
+.proc-row .dp { width: 100%; }
+.proc-row .dp-trigger { width: 100%; padding: 7px 8px; gap: 5px; font-size: 12px; font-weight: 600; border-radius: 8px; }
+.proc-row .dp-trigger:not(.empty) { padding-inline-end: 8px; }
+.proc-row .dp-trigger:disabled { background: #f1f5f3; color: #64766d; border-color: #e6ece9; }
+.proc-row .dp-clear { display: none; } /* ช่องแคบ ใช้ปุ่ม Clear ในปฏิทินแทน */
 .proc-name { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12.5px; min-width: 0; }
 .proc-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .proc-name .proc-seq { flex-shrink: 0; min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-soft); color: var(--muted); border-radius: 6px; font-size: 11.5px; font-weight: 800; overflow: visible; }
@@ -882,7 +898,7 @@ a { text-decoration: none; color: inherit; }
 /* คอลัมน์ Ads (เฉพาะ Dashboard) — Target + Content Type */
 .proc-tbl.with-ads { min-width: 1080px; }
 .proc-tbl.with-ads .proc-tbl-head, .proc-tbl.with-ads .proc-row {
-    grid-template-columns: 1fr 0.6fr 0.92fr 0.68fr 0.6fr 0.66fr 0.95fr 0.82fr 0.85fr 0.82fr 0.5fr 0.62fr;
+    grid-template-columns: 1fr 0.6fr 0.92fr 0.68fr 0.6fr 0.66fr 0.95fr 0.98fr 0.85fr 0.82fr 0.5fr 0.62fr;
 }
 .proc-ads-tgt { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff4ed; color: #c2591b; font-size: 10.5px; font-weight: 800; padding: 4px 8px; border-radius: 8px; }
 .proc-ctype-chip { display: inline-block; background: #f3ecff; color: #6d3fc0; font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 8px; }

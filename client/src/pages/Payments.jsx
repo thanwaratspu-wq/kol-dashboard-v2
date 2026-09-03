@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, uploadFile, openFile } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import Avatar from '../components/Avatar.jsx';
 import PayCyclePicker from '../components/PayCyclePicker.jsx';
 import { fmtDate } from '../utils/date.js';
@@ -133,7 +134,7 @@ function PaymentDetailModal({ row, onClose, onChange }) {
                     </div>
                     <div className="field">
                         <label>รอบวันที่ทำจ่าย</label>
-                        <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
+                        <DatePicker value={payDate} onChange={setPayDate} />
                     </div>
                     <div className="field">
                         <label>สถานะการจ่าย</label>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, openFile } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { fmtDate } from '../utils/date.js';
 
 const fmtMoney = n => '฿' + (Number(n) || 0).toLocaleString('th-TH');
@@ -70,7 +71,7 @@ function UsageForm({ usage, onClose, onSaved }) {
                     <div className="field-row">
                         <div className="field">
                             <label>วันที่ลงงาน</label>
-                            <input type="date" value={form.posted_date} onChange={e => up('posted_date', e.target.value)} />
+                            <DatePicker value={form.posted_date} onChange={v => up('posted_date', v)} />
                         </div>
                         <div className="field">
                             <label>สถานะ</label>

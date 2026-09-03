@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import BudgetTrendModal from '../components/BudgetTrendModal.jsx';
 import { ProductSummary } from '../components/ProductChips.jsx';
 import ScoreModal from '../components/ScoreModal.jsx';
@@ -76,9 +77,9 @@ export default function Dashboard() {
                 <div className="filter-controls">
                     <div className="date-range">
                         <Icon name="dashboard" size={15} />
-                        <input type="date" value={filters.from} onChange={e => setF({ from: e.target.value })} />
+                        <DatePicker value={filters.from} onChange={v => setF({ from: v })} placeholder="ตั้งแต่" />
                         <span>–</span>
-                        <input type="date" value={filters.to} onChange={e => setF({ to: e.target.value })} />
+                        <DatePicker value={filters.to} onChange={v => setF({ to: v })} placeholder="ถึง" />
                     </div>
                     <select className="campaign-select" value={filters.projectId} onChange={e => setF({ projectId: e.target.value })}>
                         <option value="">ทุก Campaign</option>

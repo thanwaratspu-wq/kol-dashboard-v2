@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api/client.js';
+import DatePicker from './DatePicker.jsx';
 
 // modal แก้ข้อมูลการใช้งาน Influencer ในแคมเปญ (งบ/วิว/ลิงก์ผลงาน/วันที่ลงงาน/สถานะ)
 export default function UsageForm({ usage, onClose, onSaved }) {
@@ -77,7 +78,7 @@ export default function UsageForm({ usage, onClose, onSaved }) {
                     <div className="field-row">
                         <div className="field">
                             <label>วันที่ลงงาน</label>
-                            <input type="date" value={form.posted_date} onChange={e => up('posted_date', e.target.value)} />
+                            <DatePicker value={form.posted_date} onChange={v => up('posted_date', v)} />
                         </div>
                         <div className="field">
                             <label>สถานะ</label>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from './Icon.jsx';
+import DatePicker from './DatePicker.jsx';
 import DraftModal from './DraftModal.jsx';
 import PerfModal from './PerfModal.jsx';
 import { asTargetArray } from '../data/products.js';
@@ -111,7 +112,7 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
                 <input type="url" value={postUrl} onChange={e => setPostUrl(e.target.value)} placeholder="ลิงก์โพสต์" disabled={!canEditPost} />
                 {adLocked && <span className="proc-locked">🔒 ยิงแอดแล้ว</span>}
             </div>
-            <div className="proc-cell"><input type="date" value={postDate} onChange={e => setPostDate(e.target.value)} disabled={!unlocked} /></div>
+            <div className="proc-cell"><DatePicker value={postDate} onChange={setPostDate} disabled={!unlocked} placeholder="เลือกวัน" /></div>
             <div className="proc-cell" title={adLocked ? lockTip : undefined}>
                 <input value={gencode} onChange={e => setGencode(e.target.value)} placeholder="Gencode" disabled={!canEditPost} />
             </div>

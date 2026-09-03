@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, uploadFile } from '../api/client.js';
 import Icon from './Icon.jsx';
+import DatePicker from './DatePicker.jsx';
 import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
@@ -452,11 +453,11 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                     <div className="field-row">
                         <div className="field">
                             <label>Period (Start)</label>
-                            <input type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} />
+                            <DatePicker value={form.start_date} onChange={v => update('start_date', v)} />
                         </div>
                         <div className="field">
                             <label>Period (End)</label>
-                            <input type="date" value={form.end_date} onChange={e => update('end_date', e.target.value)} />
+                            <DatePicker value={form.end_date} onChange={v => update('end_date', v)} />
                         </div>
                     </div>
 
