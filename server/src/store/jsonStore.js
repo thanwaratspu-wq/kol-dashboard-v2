@@ -1070,6 +1070,7 @@ const ads = {
                     product: s.product || (grp && grp.products && grp.products.length ? grp.products.join(', ') : null),
                     target: grp ? (grp.target || null) : null,
                     content_type: grp ? (grp.content_type || null) : null,
+                    media_type: grp ? (grp.media_type || null) : null,
                     gencode: s.gencode || null,
                     id_post: s.id_post || null,
                     post_url: s.post_url,

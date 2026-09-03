@@ -10,6 +10,8 @@ const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jern
 const OWNERS = ['ทราย', 'อุ้ม', 'แพรวแพรว', 'ป้อนข้าว'];
 // กลุ่ม Target สำหรับการยิงแอด (ตามช่วงอายุ)
 const CONTENT_TYPES = ['Review', 'Sale'];
+// รูปแบบสื่อที่ต้องการจาก KOL กลุ่มนี้
+const MEDIA_TYPES = ['Photo', 'VDO'];
 const CODE_EXPIRE_OPTS = [7, 30, 60, 180, 365]; // จำนวนวัน Gencode ให้เลือก
 const GROUP_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'X', 'YouTube'];
 const TIERS = ['Nano 1k - 10k', 'Micro 10k - 100k', 'Macro 100k - 1M', 'Mega 1M+'];
@@ -57,7 +59,7 @@ function CheckMultiSelect({ options, selected, onToggle, disabled, disabledText,
 
 const emptyAlloc = () => ({ tier: '', kols: '' });   // Platform ย้ายไปอยู่ระดับกลุ่มแล้ว (allocation เหลือแค่ Tier/จำนวน)
 const genKey = () => 'g' + Math.random().toString(36).slice(2, 9);
-const newGroup = (over = {}) => ({ key: genKey(), platform: '', concept: '', target: [], content_type: '', products: [], allocations: [emptyAlloc()], brief: '', draft: '', budget: '', code_expire: 60, ...over });
+const newGroup = (over = {}) => ({ key: genKey(), platform: '', concept: '', target: [], content_type: '', media_type: '', products: [], allocations: [emptyAlloc()], brief: '', draft: '', budget: '', code_expire: 60, ...over });
 // แปลงข้อมูลเดิม → allocations แบบใหม่ (เหลือ tier/kols) + คืน platform ของกลุ่ม
 function migAllocations(g) {
     if (Array.isArray(g.allocations) && g.allocations.length) return g.allocations.map(a => ({ tier: a.tier || '', kols: a.kols ?? '' }));
@@ -79,7 +81,7 @@ function initGroups(editing) {
         return editing.ad_groups.map(g => {
             const plat = migPlatform(g);
             const seededBudget = (g.budget != null && g.budget !== '') ? g.budget : ((groupsPerPlat[plat] === 1 && Number(pb[plat]) > 0) ? pb[plat] : '');
-            return newGroup({ key: g.key || genKey(), platform: plat, concept: g.concept || '', target: asTargetArray(g.target), content_type: g.content_type || '', brief: g.brief || '', products: [...(g.products || [])], allocations: migAllocations(g), budget: seededBudget, code_expire: Number(g.code_expire) || 60 });
+            return newGroup({ key: g.key || genKey(), platform: plat, concept: g.concept || '', target: asTargetArray(g.target), content_type: g.content_type || '', media_type: g.media_type || '', brief: g.brief || '', products: [...(g.products || [])], allocations: migAllocations(g), budget: seededBudget, code_expire: Number(g.code_expire) || 60 });
         });
     }
     const prods = editing?.products || [];
@@ -193,7 +195,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
             // เก็บเฉพาะกลุ่มที่มีสินค้า + ทำ products แบบ flat ไว้ให้หน้าอื่นใช้ (เช่น Agency)
             const groups = adGroups.filter(g => g.products.length && g.platform).map(g => {
                 const allocations = g.allocations.filter(a => a.tier).map(a => ({ platform: g.platform, tier: a.tier, kols: Number(a.kols) || 0 }));
-                return { key: g.key || genKey(), platform: g.platform, concept: g.concept || null, target: asTargetArray(g.target), content_type: g.content_type || null, brief: (g.brief && g.brief.trim()) ? g.brief.trim() : null, products: g.products, allocations, kol_count: allocations.reduce((s, a) => s + a.kols, 0), budget: Number(String(g.budget).replace(/\D/g, '')) || 0, code_expire: Number(g.code_expire) || 60 };
+                return { key: g.key || genKey(), platform: g.platform, concept: g.concept || null, target: asTargetArray(g.target), content_type: g.content_type || null, media_type: g.media_type || null, brief: (g.brief && g.brief.trim()) ? g.brief.trim() : null, products: g.products, allocations, kol_count: allocations.reduce((s, a) => s + a.kols, 0), budget: Number(String(g.budget).replace(/\D/g, '')) || 0, code_expire: Number(g.code_expire) || 60 };
             });
             const flatProducts = groups.flatMap(g => g.products);
             const totalKol = groups.reduce((s, g) => s + g.kol_count, 0); // KOL เป้าหมายรวม = ผลรวมทุกกลุ่ม
@@ -377,10 +379,14 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="target-multi">
+                                            <div className="target-multi ctype-row">
                                                 <select className="target-add" value={g.content_type} onChange={e => setGroupField(i, 'content_type', e.target.value)}>
                                                     <option value="">— Content Type —</option>
                                                     {CONTENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                                <select className="target-add" value={g.media_type} onChange={e => setGroupField(i, 'media_type', e.target.value)}>
+                                                    <option value="">— Photo / VDO —</option>
+                                                    {MEDIA_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
                                             </div>
                                             {/* จำนวนวัน Gencode (โค้ดใช้ได้กี่วัน) */}

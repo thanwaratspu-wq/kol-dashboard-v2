@@ -93,7 +93,12 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
             )}
             {showAds && (
                 <div className="proc-cell">
-                    {group?.content_type ? <span className="proc-ctype-chip">{group.content_type}</span> : <span className="muted">—</span>}
+                    {group?.content_type || group?.media_type ? (
+                        <>
+                            {group.content_type && <span className="proc-ctype-chip">{group.content_type}</span>}
+                            {group.media_type && <span className="proc-ctype-chip media">{group.media_type}</span>}
+                        </>
+                    ) : <span className="muted">—</span>}
                 </div>
             )}
             <div className="proc-cell"><span className="proc-plat">{sub.platform || '—'}</span></div>

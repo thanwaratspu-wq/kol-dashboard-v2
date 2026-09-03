@@ -933,6 +933,12 @@ a { text-decoration: none; color: inherit; }
 }
 .proc-ads-tgt { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff4ed; color: #c2591b; font-size: 10.5px; font-weight: 800; padding: 4px 8px; border-radius: 8px; }
 .proc-ctype-chip { display: inline-block; background: #f3ecff; color: #6d3fc0; font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 8px; }
+/* ป้าย Photo / VDO — ใช้สีต่างจากประเภทคอนเทนต์ จะได้แยกออกตอนขึ้นคู่กัน */
+.proc-ctype-chip.media { background: #eef2ff; color: #4338ca; }
+/* Content Type กับ Photo/VDO วางคู่กันในแถวเดียว */
+.ctype-row { display: flex; gap: 8px; }
+.ctype-row > select { flex: 1; min-width: 0; }
+.ag-group-req { display: flex; gap: 6px; margin-top: 6px; }
 .proc-viewdraft {
     display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--mint); background: var(--bg-soft);
     color: var(--mint-dark); font-weight: 700; font-size: 11.5px; padding: 6px 9px; border-radius: 8px; cursor: pointer;
