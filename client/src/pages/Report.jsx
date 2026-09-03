@@ -27,6 +27,11 @@ export default function Report() {
     const c = d.campaign;
     const kolRows = plat ? d.kols.filter(k => k.platform === plat) : d.kols;
 
+    // จัดอันดับ Performance — คะแนน: Good(CPM/CPE ผ่านเกณฑ์) > reach > ลงงาน > ยิงแอด, ตัดเสมอด้วย CPM ต่ำสุด/ค่าใช้จ่ายต่ำสุด
+    const perfScore = k => (k.performance === 'Good' ? 100000 : 0) + (Number(k.reach) || 0) / 100 + (k.posted ? 500 : 0) + (k.boosted ? 200 : 0);
+    const kolRank = [...kolRows]
+        .sort((a, b) => perfScore(b) - perfScore(a) || ((a.cpm || Infinity) - (b.cpm || Infinity)) || (a.cost - b.cost))
+        .slice(0, 5);
     const medal = i => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
     const fmtV = n => { n = Number(n) || 0; if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return String(n); };
     const perf = d.performance || {};
@@ -186,6 +191,34 @@ export default function Report() {
                     <div className="rpt-cost c-orange"><div className="rpt-cost-k">KOL COST</div><div className="rpt-cost-v">{B(d.cost.kol_cost)}</div><div className="rpt-cost-sub">ค่าจ้าง KOL ทั้งหมด</div></div>
                     <div className="rpt-cost c-green"><div className="rpt-cost-k">AVG CPM / คน</div><div className="rpt-cost-v">{B(d.cost.avg_cpm)}</div><div className="rpt-cost-sub">เฉลี่ย Cost per 1K Reach ต่อคน</div></div>
                     <div className="rpt-cost c-blue"><div className="rpt-cost-k">AVG CPE / คน</div><div className="rpt-cost-v">{B(d.cost.avg_cpe)}</div><div className="rpt-cost-sub">เฉลี่ย Cost per Engagement ต่อคน</div></div>
+                </div>
+            </div>
+
+            {/* อันดับ Performance ดีที่สุด (ราย KOL) */}
+            <div className="panel">
+                <div className="panel-head"><h3>🏆 อันดับ Performance ดีที่สุด <span className="dash-section-sub">เรียงจากผลงานดีสุดในแคมเปญ</span></h3></div>
+                <div className="rank-grid">
+                    <div className="rank-col">
+                        <div className="rank-col-title">👤 Top KOL</div>
+                        {kolRank.length === 0 ? <div className="rank-empty">— ยังไม่มีข้อมูล</div> : kolRank.map((k, i) => (
+                            <div className={'rank-item' + (i < 3 ? ' top' : '')} key={k.idx}>
+                                <span className={'rank-no r' + (i + 1)}>{medal(i)}</span>
+                                <div className="rank-main">
+                                    <b>{k.name}</b>
+                                    <span className="rank-sub">{k.platform || '—'} · {k.performance === 'Good' ? '⭐ Good' : (k.posted ? 'ลงงานแล้ว' : 'ยังไม่ลงงาน')}{k.boosted ? ' · ยิงแอดแล้ว' : ''}</span>
+                                </div>
+                                <div className="rank-stats">
+                                    <span><i>views</i><b>{fmtV(k.views)}</b></span>
+                                    <span><i>likes</i><b>{fmtV(k.likes)}</b></span>
+                                    <span><i>comments</i><b>{fmtV(k.comments)}</b></span>
+                                    <span><i>saves</i><b>{fmtV(k.saves)}</b></span>
+                                    <span><i>shares</i><b>{fmtV(k.shares)}</b></span>
+                                    <span className="sep"><i>CPM</i><b>{Number(k.cpm) > 0 ? B(k.cpm) : '—'}</b></span>
+                                    <span><i>CPE</i><b>{Number(k.cpe) > 0 ? B(k.cpe) : '—'}</b></span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
