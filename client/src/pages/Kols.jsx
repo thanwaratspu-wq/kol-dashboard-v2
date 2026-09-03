@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import ProductChips from '../components/ProductChips.jsx';
-import ColumnFilter from '../components/ColumnFilter.jsx';
 
 const splitCodes = v => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
 
@@ -87,7 +86,7 @@ export default function Kols() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [product, setProduct] = useState('');
-    const [perf, setPerf] = useState('');   // ''=ทั้งหมด | Good | Improve | none
+    const [perfSort, setPerfSort] = useState('');  // ''=ตามเดิม | best=ดีสุดขึ้นก่อน | worst=แย่สุดขึ้นก่อน
     const [search, setSearch] = useState('');
 
     function load() {
@@ -114,9 +113,7 @@ export default function Kols() {
             .some(v => String(v ?? '').toLowerCase().includes(q));
     };
 
-    // แถวที่ผ่านตัวกรองอื่นครบแล้ว แต่ยังไม่กรอง Performance
-    // ใช้เป็นฐานนับจำนวนในเมนู ไม่งั้นพอเลือก Pass แล้วตัวเลขช่องอื่นจะเหลือ 0 หมด
-    const baseRows = rows.filter(r =>
+    const shown = rows.filter(r =>
         (!brand || r.brand === brand) &&
         (!platform || r.platform === platform) &&
         (!year || String(r.year) === String(year)) &&
@@ -124,14 +121,22 @@ export default function Kols() {
         (!product || r.product === product) &&
         matchSearch(r));
 
-    const perfOpts = [
-        { value: '', label: 'ทั้งหมด', count: baseRows.length },
-        { value: 'Good', label: '✓ Pass', dot: 'ontime', count: baseRows.filter(r => r.performance === 'Good').length },
-        { value: 'Improve', label: '✕ Fail', dot: 'bad', count: baseRows.filter(r => r.performance === 'Improve').length },
-        { value: 'none', label: 'Not rated', dot: 'none', count: baseRows.filter(r => !r.performance).length }
-    ];
+    // เรียงตาม Performance — กดหัวคอลัมน์สลับไปมา
+    // "ยังไม่ประเมิน" ให้อยู่ท้ายสุดเสมอ เพราะไม่ใช่ผลที่วัดได้ ไม่ควรไปแทรกกลาง
+    const RANK = { Good: 0, Improve: 1 };
+    const rankOf = r => (!r.performance ? 2 : (perfSort === 'best' ? RANK[r.performance] : 1 - RANK[r.performance]));
+    const sorted = !perfSort ? shown : [...shown].sort((a, b) => {
+        const d = rankOf(a) - rankOf(b);
+        if (d) return d;
+        // กลุ่มเดียวกัน เรียงต่อด้วย CPM (ถูกกว่า = คุ้มกว่า) คนที่ยังไม่มี CPM ไปท้ายกลุ่ม
+        const ca = a.cpm > 0 ? a.cpm : null, cb = b.cpm > 0 ? b.cpm : null;
+        if (ca == null && cb == null) return 0;
+        if (ca == null) return 1;
+        if (cb == null) return -1;
+        return perfSort === 'best' ? ca - cb : cb - ca;
+    });
 
-    const shown = baseRows.filter(r => !perf || (perf === 'none' ? !r.performance : r.performance === perf));
+    const cyclePerfSort = () => setPerfSort(v => (v === '' ? 'best' : v === 'best' ? 'worst' : ''));
 
     const total = shown.length;
     const budget = shown.reduce((a, r) => a + r.cost, 0);
@@ -215,9 +220,14 @@ export default function Kols() {
                             <tr>
                                 <th>Month</th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
                                 <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
-                                <th className="num">CPM</th><th className="num">CPE</th><th>
-                                    Performance
-                                    <ColumnFilter label="Performance" value={perf} onPick={setPerf} options={perfOpts} />
+                                <th className="num">CPM</th><th className="num">CPE</th><th className="ka-sort-th">
+                                    <button type="button" className={'ka-sort' + (perfSort ? ' on' : '')} onClick={cyclePerfSort}
+                                        title={perfSort === 'best' ? 'เรียง: ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นไม่ผ่านขึ้นก่อน'
+                                            : perfSort === 'worst' ? 'เรียง: ไม่ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อกลับไปเรียงตามวันที่ลงงาน'
+                                                : 'กดเพื่อเรียงตาม Performance'}>
+                                        Performance
+                                        <span className="ka-sort-ico">{perfSort === 'best' ? '▲' : perfSort === 'worst' ? '▼' : '⇅'}</span>
+                                    </button>
                                 </th>
                                 <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
                                 <th>Post Link</th><th>Gencode</th><th>ID POST</th>
@@ -232,7 +242,7 @@ export default function Kols() {
                                         ? `ไม่พบ "${search.trim()}" — ลองพิมพ์สั้นลง หรือเช็คตัวกรองอื่นที่เลือกอยู่`
                                         : 'ยังไม่มี KOL ที่คัดเลือกในเงื่อนไขที่เลือก'}
                                 </td></tr>
-                            ) : shown.map(r => (
+                            ) : sorted.map(r => (
                                 <tr key={r.sub_id}>
                                     <td>{r.month || '—'}</td>
                                     <td><ProductChips products={splitCodes(r.product)} collapseAt={3} /></td>

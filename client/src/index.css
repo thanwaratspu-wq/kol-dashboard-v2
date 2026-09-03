@@ -742,6 +742,18 @@ a { text-decoration: none; color: inherit; }
 .perf-pill.good { background: #e7f8f0; color: #0f7a52; border-color: #b6e8d2; }
 .perf-pill.bad  { background: #fdeaea; color: #c0271f; border-color: #f6c4c1; }
 .perf-pill.none { background: #f2f5f4; color: #8a9a93; border-color: #e4eae7; font-weight: 600; }
+/* หัวคอลัมน์ที่กดเรียงลำดับได้ */
+.ka-table th.ka-sort-th { padding: 0; }
+.ka-sort {
+    display: inline-flex; align-items: center; gap: 5px; width: 100%;
+    padding: 11px 12px; border: none; background: none; cursor: pointer;  /* ให้เท่า .ka-table th */
+    font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+    border-radius: 8px; transition: color .12s, background .12s;
+}
+.ka-sort:hover { color: var(--mint-dark); background: var(--bg-soft); }
+.ka-sort.on { color: var(--mint-dark); }
+.ka-sort-ico { font-size: 10px; opacity: .45; line-height: 1; }
+.ka-sort.on .ka-sort-ico { opacity: 1; }
 
 /* ============ CAMPAIGN REPORTS ============ */
 .report-section-title { font-size: 15.5px; font-weight: 800; margin: 6px 2px 16px; }
