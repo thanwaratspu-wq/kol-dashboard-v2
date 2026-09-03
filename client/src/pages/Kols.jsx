@@ -110,7 +110,7 @@ export default function Kols() {
     const matchSearch = r => {
         const q = search.trim().toLowerCase();
         if (!q) return true;
-        return [r.kol_name, r.product, r.agency, r.owner, r.concept, r.gencode, r.id_post, r.platform, r.brand]
+        return [r.kol_name, r.product, r.agency, r.owner, r.project_name, r.gencode, r.id_post, r.platform, r.brand]
             .some(v => String(v ?? '').toLowerCase().includes(q));
     };
 
@@ -242,7 +242,7 @@ export default function Kols() {
                                         Month
                                         <span className="ka-sort-ico">{sort === 'month-desc' ? '▼' : sort === 'month-asc' ? '▲' : '⇅'}</span>
                                     </button>
-                                </th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
+                                </th><th>Product</th><th>KOL Name</th><th>Link</th><th>ชื่อ Project</th>
                                 <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
                                 <th className="num">CPM</th><th className="num">CPE</th><th className="ka-sort-th">
                                     <button type="button" className={'ka-sort' + (sort.startsWith('perf-') ? ' on' : '')} onClick={sortByPerf}
@@ -272,7 +272,7 @@ export default function Kols() {
                                     <td><ProductChips products={splitCodes(r.product)} collapseAt={3} /></td>
                                     <td><strong>{r.kol_name}</strong></td>
                                     <td>{r.link_account ? <a href={r.link_account} target="_blank" rel="noreferrer" className="ka-link"><Icon name="eye" size={13} /></a> : '—'}</td>
-                                    <td className="ka-concept" title={r.concept || ''}>{r.concept || '—'}</td>
+                                    <td className="ka-project" title={r.project_name || ''}>{r.project_name || '—'}</td>
                                     <td>{r.platform || '—'}</td>
                                     <td className="muted">{r.owner || '—'}</td>
                                     <td className="muted">{r.agency || '—'}</td>

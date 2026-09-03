@@ -671,7 +671,7 @@ a { text-decoration: none; color: inherit; }
 .ka-table-scroll { overflow-x: auto; }
 .ka-table { min-width: 1500px; font-size: 12.5px; }
 .ka-table th, .ka-table td { padding: 11px 12px; white-space: nowrap; }
-.ka-concept { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: #45605a; }
+.ka-project { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: #45605a; }
 .ka-code { max-width: 130px; font-size: 11.5px; color: var(--muted); }
 /* Gencode / ID Post — ข้อความตัดท้าย + ปุ่มคัดลอกค่าเต็มด้านขวา */
 .ka-copy-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; }
