@@ -309,12 +309,13 @@ router.post('/:id/submissions', async (req, res, next) => {
     try {
         const check = await canEditProject(req, req.params.id);
         if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
-        const { account_name, platform, product, agency, budget, link_account, followers } = req.body;
+        const { account_name, platform, product, agency, budget, link_account, followers, group_key } = req.body;
         if (!account_name) return res.status(400).json({ status: 'error', message: 'กรุณาระบุชื่อ Account' });
         const data = await store.submissions.add({
             project_id: req.params.id, account_name,
             platform: platform || null, product: product || null, agency: agency || null,
-            budget: Number(budget) || 0, link_account: link_account || null, followers: Number(followers) || 0
+            budget: Number(budget) || 0, link_account: link_account || null, followers: Number(followers) || 0,
+            group_key: group_key || null   // กลุ่มโฆษณาที่สังกัด — พา Target/Content Type/Photo-VDO/Content Format มาด้วย
         });
         await record(req, req.params.id, 'add_kol', `เพิ่ม KOL: ${account_name}`);
         res.status(201).json({ status: 'success', data });

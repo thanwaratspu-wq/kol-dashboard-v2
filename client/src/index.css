@@ -979,6 +979,11 @@ a { text-decoration: none; color: inherit; }
 .perf-fetch-btn:hover { background: #dcefe5; }
 .perf-fetch-btn:disabled { opacity: .6; cursor: not-allowed; }
 /* ช่องอ่านอย่างเดียวในโมดัลผลงาน — Content Format มาจากตอนตั้งแคมเปญ */
+/* กล่องสรุปสิ่งที่ KOL จะได้จากกลุ่ม ตอนเพิ่มเข้าแคมเปญเอง */
+.addsub-inherit { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--bg-soft); border: 1px solid var(--border); }
+.addsub-inherit-t { display: block; font-size: 11px; font-weight: 700; color: var(--mint-dark); margin-bottom: 6px; }
+.addsub-inherit .ag-group-req { margin-top: 0; }
+.addsub-warn { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #fff8ed; border: 1px solid #f3d9b0; color: #9a5b12; font-size: 11.5px; line-height: 1.5; }
 .perf-readonly {
     padding: 10px 12px; border: 1px dashed var(--border); border-radius: 10px;
     background: var(--bg-soft); color: var(--text); font-size: 13.5px; font-weight: 600;

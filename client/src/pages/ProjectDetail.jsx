@@ -76,8 +76,22 @@ function AddKolModal({ projectId, existingIds, onClose, onAdded }) {
 const SUB_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'YouTube', 'X'];
 
 // modal เพิ่ม KOL เข้าลิสต์เอง (ฝั่งทีม)
-function AddSubmissionModal({ projectId, products = [], onClose, onAdded }) {
-    const [f, setF] = useState({ account_name: '', platform: 'TikTok', product: '', agency: '', budget: '', link_account: '' });
+function AddSubmissionModal({ projectId, products = [], groups = [], onClose, onAdded }) {
+    // มีกลุ่มเดียวก็เลือกให้เลย ไม่ต้องกดซ้ำ
+    const [f, setF] = useState({ group_key: groups.length === 1 ? groups[0].key : '', account_name: '', platform: groups.length === 1 ? (groups[0].platform || 'TikTok') : 'TikTok', product: '', agency: '', budget: '', link_account: '' });
+    const g = groups.find(x => x.key === f.group_key) || null;
+    // สินค้าให้เลือกเฉพาะของกลุ่มที่เลือก — ถ้ายังไม่เลือกกลุ่มค่อยใช้สินค้าทั้งแคมเปญ
+    const productOpts = (g && (g.products || []).length) ? g.products : products;
+    // เลือกกลุ่มแล้วดึง Platform ของกลุ่มมาให้ และล้างสินค้าถ้าไม่มีในกลุ่มใหม่
+    function pickGroup(key) {
+        const grp = groups.find(x => x.key === key) || null;
+        setF(st => ({
+            ...st,
+            group_key: key,
+            platform: (grp && grp.platform) || st.platform,
+            product: (grp && (grp.products || []).includes(st.product)) ? st.product : ''
+        }));
+    }
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const up = (k, v) => setF(s => ({ ...s, [k]: v }));
@@ -88,7 +102,7 @@ function AddSubmissionModal({ projectId, products = [], onClose, onAdded }) {
         try {
             await api(`/projects/${projectId}/submissions`, {
                 method: 'POST',
-                body: { ...f, budget: Number(f.budget) || 0 }
+                body: { ...f, group_key: f.group_key || null, budget: Number(f.budget) || 0 }
             });
             onAdded();
         } catch (err) { setError(err.message); }
@@ -101,6 +115,39 @@ function AddSubmissionModal({ projectId, products = [], onClose, onAdded }) {
                 <div className="modal-head"><h3>เพิ่ม KOL เข้า Project</h3><button className="modal-x" onClick={onClose}>×</button></div>
                 {error && <div className="alert-error">{error}</div>}
                 <form onSubmit={submit}>
+                    {groups.length > 0 && (
+                        <div className="field">
+                            <label>กลุ่มในแคมเปญ</label>
+                            <select value={f.group_key} onChange={e => pickGroup(e.target.value)}>
+                                <option value="">— ยังไม่ระบุกลุ่ม —</option>
+                                {groups.map((grp, gi) => (
+                                    <option key={grp.key} value={grp.key}>
+                                        {'กลุ่มที่ ' + (gi + 1)}
+                                        {grp.platform ? ' · ' + grp.platform : ''}
+                                        {(grp.products || []).length ? ' · ' + grp.products.join(', ') : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {g ? (
+                                <div className="addsub-inherit">
+                                    <span className="addsub-inherit-t">ติดมาจากกลุ่มนี้เอง ไม่ต้องกรอกซ้ำ</span>
+                                    <div className="ag-group-req">
+                                        {g.content_type && <span className="proc-ctype-chip">{g.content_type}</span>}
+                                        {g.media_type && <span className="proc-ctype-chip media">{g.media_type}</span>}
+                                        {g.content_format && <span className="proc-ctype-chip fmt">{g.content_format}</span>}
+                                        {asTargetArray(g.target).map(t => <span className="proc-ads-tgt" key={t}>🎯 {t}</span>)}
+                                        {!g.content_type && !g.media_type && !g.content_format && asTargetArray(g.target).length === 0 && (
+                                            <span className="muted">กลุ่มนี้ยังไม่ได้ตั้ง Content Type / Photo-VDO / Content Format</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="addsub-warn">
+                                    ยังไม่เลือกกลุ่ม — KOL คนนี้จะไม่มี Target / Content Type / Photo-VDO / Content Format ติดมาด้วย
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className="field">
                         <label>ชื่อ Account *</label>
                         <input value={f.account_name} onChange={e => up('account_name', e.target.value)} placeholder="เช่น @username" required autoFocus />
@@ -108,16 +155,20 @@ function AddSubmissionModal({ projectId, products = [], onClose, onAdded }) {
                     <div className="field-row">
                         <div className="field">
                             <label>Platform</label>
-                            <select value={f.platform} onChange={e => up('platform', e.target.value)}>
-                                {SUB_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
+                            {g && g.platform ? (
+                                <div className="perf-readonly" title="กำหนดไว้ที่กลุ่มนี้ตอนตั้งแคมเปญ">{g.platform}</div>
+                            ) : (
+                                <select value={f.platform} onChange={e => up('platform', e.target.value)}>
+                                    {SUB_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            )}
                         </div>
                         <div className="field">
                             <label>Product</label>
-                            {products.length > 0 ? (
+                            {productOpts.length > 0 ? (
                                 <select value={f.product} onChange={e => up('product', e.target.value)}>
                                     <option value="">— เลือก —</option>
-                                    {products.map(p => <option key={p} value={p}>{p}</option>)}
+                                    {productOpts.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             ) : <input value={f.product} onChange={e => up('product', e.target.value)} placeholder="สินค้า" />}
                         </div>
@@ -764,6 +815,7 @@ export default function ProjectDetail() {
             {showAddSub && (
                 <AddSubmissionModal
                     projectId={id}
+                    groups={project.ad_groups || []}
                     products={(project.products || []).map(p => (typeof p === 'string' ? p : p.name))}
                     onClose={() => setShowAddSub(false)}
                     onAdded={() => { setShowAddSub(false); loadSubs(); }}
