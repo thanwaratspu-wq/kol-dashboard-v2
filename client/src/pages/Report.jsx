@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import { productLabel } from '../data/products.js';
 import { ProductSummary } from '../components/ProductChips.jsx';
+import { fmtRange } from '../utils/date.js';
 
 const B = n => '฿' + (Number(n) || 0).toLocaleString('th-TH');
 const N = n => (Number(n) || 0).toLocaleString('th-TH');
@@ -45,7 +46,7 @@ export default function Report() {
             <div className="print-only rpt-print-head">
                 <div className="rpt-print-title">Report Analysis — {c.name}</div>
                 <div className="rpt-print-meta">
-                    ช่วงแคมเปญ: {c.start_date || '—'} ถึง {c.end_date || '—'}
+                    ช่วงแคมเปญ: {fmtRange(c.start_date, c.end_date, ' ถึง ')}
                     {' · '}แพลตฟอร์ม: {plat || 'ทั้งหมด'}
                     {' · '}ออกรายงาน: {new Date().toLocaleString('th-TH')}
                 </div>
@@ -67,7 +68,7 @@ export default function Report() {
                 <div className="rpt-top-item"><div className="rpt-top-k">USED BUDGET</div><div className="rpt-top-v red">{N(c.used)}</div></div>
                 <div className="rpt-top-item"><div className="rpt-top-k">PRODUCT</div><div className="rpt-top-v sm">{c.product && c.product !== '—' ? <ProductSummary value={c.product} /> : '—'}</div></div>
                 <div className="rpt-top-item"><div className="rpt-top-k">TOTAL KOLS</div><div className="rpt-top-v">{c.total_kols}</div></div>
-                <div className="rpt-top-item"><div className="rpt-top-k">PERIOD</div><div className="rpt-top-v sm">{c.start_date || '—'} - {c.end_date || '—'}</div></div>
+                <div className="rpt-top-item"><div className="rpt-top-k">PERIOD</div><div className="rpt-top-v sm">{fmtRange(c.start_date, c.end_date)}</div></div>
             </div>
 
             {/* ฟิลเตอร์แพลตฟอร์ม */}

@@ -7,6 +7,7 @@ import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
+import { fmtRange } from '../utils/date.js';
 
 const STATUS_LABEL = { Draft: 'ร่าง', Active: 'กำลังทำ', Completed: 'เสร็จสิ้น', Cancelled: 'ยกเลิก' };
 const STATUS_ORDER = ['Draft', 'Active', 'Completed', 'Cancelled'];
@@ -459,7 +460,7 @@ export default function ProjectDetail() {
                 </div>
                 <div className="pd-metric">
                     <div className="pd-metric-icon date"><Icon name="calendar" size={20} /></div>
-                    <div><div className="pd-metric-label">ช่วงเวลา</div><div className="pd-metric-value sm">{project.start_date || '—'} → {project.end_date || '—'}</div></div>
+                    <div><div className="pd-metric-label">ช่วงเวลา</div><div className="pd-metric-value sm">{fmtRange(project.start_date, project.end_date, ' → ')}</div></div>
                 </div>
                 <div className="pd-metric">
                     <div className="pd-metric-icon owner"><Icon name="users" size={20} /></div>

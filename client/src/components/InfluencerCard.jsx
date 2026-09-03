@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import Icon from './Icon.jsx';
 import UsageForm from './UsageForm.jsx';
+import { fmtDate } from '../utils/date.js';
 
 const fmtMoney = n => '฿' + (Number(n) || 0).toLocaleString('th-TH');
 const fmtNum = n => {
@@ -89,7 +90,7 @@ export default function InfluencerCard({ kolId, onClose }) {
                                                     {u.post_link ? (
                                                         <a className="inf-work-link" href={u.post_link} target="_blank" rel="noreferrer">
                                                             <Icon name="eye" size={14} /> ดูผลงาน
-                                                            {u.posted_date && <span className="inf-work-date">· {u.posted_date}</span>}
+                                                            {u.posted_date && <span className="inf-work-date">· {fmtDate(u.posted_date)}</span>}
                                                         </a>
                                                     ) : (
                                                         <span className="inf-work-nolink">ยังไม่มีลิงก์ผลงาน</span>

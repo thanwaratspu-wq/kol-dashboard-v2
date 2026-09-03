@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import { fmtRange } from '../utils/date.js';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const MONTHS = [
@@ -98,7 +99,7 @@ export default function Budget() {
                                 <h3 className="report-card-name">{r.name}</h3>
                                 <span className={`report-status st-${r.status}`}>{r.status}</span>
                             </div>
-                            <div className="report-card-dates">{r.start_date || '—'} - {r.end_date || '—'}</div>
+                            <div className="report-card-dates">{fmtRange(r.start_date, r.end_date)}</div>
 
                             <div className="report-metrics">
                                 <div className="rm">

@@ -4,6 +4,7 @@ import Icon from '../components/Icon.jsx';
 import Avatar from '../components/Avatar.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { ProductSummary } from '../components/ProductChips.jsx';
+import { fmtDate } from '../utils/date.js';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 const STATUSES = ['ยังไม่ยิง', 'ยิงแล้ว'];
@@ -130,7 +131,7 @@ function AdRow({ row, onSaved }) {
                 {row.id_post ? <span className="ads-code" title={row.id_post}>{row.id_post}</span> : <span className="muted">—</span>}
             </div>
             <div className="ads-cell">
-                {row.post_date ? <span className="ads-postdate">{row.post_date}</span> : <span className="muted">—</span>}
+                {row.post_date ? <span className="ads-postdate">{fmtDate(row.post_date)}</span> : <span className="muted">—</span>}
             </div>
             <div className="ads-cell">
                 <button type="button" className={'ads-status ' + (adStatus === 'ยิงแล้ว' ? 'done' : 'pending')} onClick={toggleStatus} disabled={saving}>
@@ -142,7 +143,7 @@ function AdRow({ row, onSaved }) {
             {/* แก้เองไม่ได้ — ระบบลงวันที่ให้ตอนกดปุ่มสถานะเป็น "ยิงแล้ว" และล้างให้เมื่อกดกลับเป็น "ยังไม่ยิง" */}
             <div className="ads-cell">
                 {end
-                    ? <span className="ads-postdate" title="ลงอัตโนมัติจากวันที่กดยิงแอด">{end}</span>
+                    ? <span className="ads-postdate" title="ลงอัตโนมัติจากวันที่กดยิงแอด">{fmtDate(end)}</span>
                     : <span className="muted" title="กดปุ่มสถานะเป็น 'ยิงแล้ว' แล้ววันที่จะขึ้นเอง">—</span>}
             </div>
             <div className="ads-cell ads-late">

@@ -3,6 +3,7 @@ import { api, uploadFile, openFile } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import Avatar from '../components/Avatar.jsx';
 import PayCyclePicker from '../components/PayCyclePicker.jsx';
+import { fmtDate } from '../utils/date.js';
 
 const STATUS_OPTIONS = ['รอทำจ่าย', 'ทำจ่ายแล้ว'];
 const PAID = 'ทำจ่ายแล้ว';
@@ -66,7 +67,7 @@ function PaymentSummaryCard({ row, onOpen }) {
                 <h3 className="pcard-name">{row.project_name}</h3>
                 <div className="pcard-sub">
                     <span>🏢 {row.agency_name || <span className="muted">ยังไม่ระบุเอเจนซี่</span>}</span>
-                    {row.payment_date && <span>📅 รอบจ่าย {row.payment_date}</span>}
+                    {row.payment_date && <span>📅 รอบจ่าย {fmtDate(row.payment_date)}</span>}
                 </div>
                 <div className="pcard-foot">
                     <div>

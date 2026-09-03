@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, openFile } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
+import { fmtDate } from '../utils/date.js';
 
 const fmtMoney = n => '฿' + (Number(n) || 0).toLocaleString('th-TH');
 const fmtNum = n => {
@@ -172,7 +173,7 @@ export default function InfluencerDetail() {
                                 <td className="muted">{u.team_name || '—'}</td>
                                 <td className="num" style={{ color: 'var(--mint-dark)', fontWeight: 700 }}>{fmtMoney(u.fee)}</td>
                                 <td className="num">{u.views ? fmtNum(u.views) : '—'}</td>
-                                <td className="muted">{u.posted_date || '—'}</td>
+                                <td className="muted">{fmtDate(u.posted_date)}</td>
                                 <td>
                                     {u.post_link ? (
                                         <a className="work-link" href={u.post_link} target="_blank" rel="noreferrer">
