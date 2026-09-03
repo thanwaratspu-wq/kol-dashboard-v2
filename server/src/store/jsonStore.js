@@ -981,9 +981,24 @@ const submissions = {
     async update(subId, projectId, fields, byName) {
         const s = db.submissions.find(x => x.id === Number(subId) && (projectId == null || x.project_id === Number(projectId)));
         if (!s) return null;
+        // จำค่าเดิมของช่องที่ต้องบันทึกวันที่นำเข้าระบบ (ต้องเทียบก่อนเขียนทับ)
+        const STAMP_F = ['post_url', 'gencode', 'id_post'];
+        const filled = v => !!(v !== null && v !== undefined && String(v).trim());
+        const wasFilled = {};
+        STAMP_F.forEach(f => { wasFilled[f] = filled(s[f]); });
         for (const k of ['account_name', 'followers', 'platform', 'product', 'agency', 'budget', 'link_account', 'concept', 'gen_date', 'group_key', 'tier', 'status', 'draft_link', 'draft_link2', 'draft_link3', 'draft_link4', 'draft_link5', 'gencode', 'feedback', 'feedback2', 'feedback3', 'feedback4', 'feedback5', 'approved', 'draft_status', 'post_url', 'post_date', 'id_post', 'code_expire', 'ad_status', 'ad_spend', 'ad_reach', 'ad_start', 'ad_end', 'ad_note', 'team_note', 'views', 'likes', 'comments', 'saves', 'shares', 'content_format', 'perf_synced_at']) {
             if (fields[k] !== undefined) s[k] = fields[k];
         }
+        // บันทึก "วันที่นำเข้าระบบ" ของลิงก์คลิป / Gencode / ID Post
+        // นับตอนที่ช่องว่างเปลี่ยนเป็นมีค่าครั้งแรก — แก้ไขทีหลังไม่เปลี่ยนวันที่
+        // ถ้าลบค่าออก ล้างวันที่ทิ้งด้วย จะได้ไม่เหลือวันที่ค้างของข้อมูลที่ไม่มีแล้ว
+        STAMP_F.forEach(f => {
+            if (fields[f] === undefined) return;
+            const nowFilled = filled(s[f]);
+            if (!wasFilled[f] && nowFilled) s[f + '_at'] = now();
+            else if (wasFilled[f] && !nowFilled) s[f + '_at'] = null;
+        });
+
         // ปรับ timestamp ตามหมวดของข้อมูลที่แก้ (ใช้ทำแจ้งเตือนแท็บ)
         const LIST_F = ['account_name', 'followers', 'platform', 'product', 'agency', 'budget', 'link_account', 'tier', 'group_key', 'status'];
         const WORK_F = ['draft_link', 'draft_link2', 'draft_link3', 'draft_link4', 'draft_link5', 'draft_status', 'feedback', 'feedback2', 'feedback3', 'feedback4', 'feedback5', 'gencode', 'post_url', 'post_date', 'id_post', 'code_expire', 'approved', 'concept', 'gen_date'];
@@ -1039,6 +1054,10 @@ const ads = {
                     id_post: s.id_post || null,
                     post_url: s.post_url,
                     post_date: s.post_date || null,
+                    // วันที่นำเข้าระบบของแต่ละช่อง (ว่าง = ยังไม่เคยบันทึก หรือเป็นข้อมูลเก่าก่อนมีฟีเจอร์นี้)
+                    post_url_at: s.post_url_at || null,
+                    gencode_at: s.gencode_at || null,
+                    id_post_at: s.id_post_at || null,
                     project_id: s.project_id,
                     project_name: p ? p.name : null,
                     brand: p ? (p.brand || 'อื่นๆ') : 'อื่นๆ',

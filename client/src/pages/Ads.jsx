@@ -44,6 +44,16 @@ function monthToRange(m) {
     return { from: `${y}-${pad(mo)}-01`, to: `${y}-${pad(mo)}-${pad(last)}` };
 }
 
+// บรรทัดเล็กใต้ช่อง บอกว่าข้อมูลนี้ถูกนำเข้าระบบวันไหน
+// ไม่มีวันที่ = ข้อมูลเก่าที่บันทึกไว้ก่อนระบบเริ่มเก็บเวลา จึงไม่แสดงอะไรแทนที่จะเดา
+function EnteredAt({ at, has }) {
+    if (!has || !at) return null;
+    const d = new Date(at);
+    if (isNaN(d)) return null;
+    const full = d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+    return <span className="ads-entered" title={`บันทึกเข้าระบบเมื่อ ${full}`}>เข้าระบบ {fmtDate(at)}</span>;
+}
+
 // โค้ด + ปุ่มคัดลอก (Gencode / ID Post)
 function CopyCode({ value }) {
     const [copied, setCopied] = useState(false);
@@ -206,12 +216,15 @@ function AdRow({ row, onSaved }) {
                 {row.post_url
                     ? <a href={row.post_url} target="_blank" rel="noreferrer" title="เปิดโพสต์"><Icon name="eye" size={16} /></a>
                     : <span className="muted">—</span>}
+                <EnteredAt at={row.post_url_at} has={row.post_url} />
             </div>
             <div className="ads-cell">
                 <CopyCode value={row.gencode} />
+                <EnteredAt at={row.gencode_at} has={row.gencode} />
             </div>
             <div className="ads-cell">
                 {row.id_post ? <span className="ads-code" title={row.id_post}>{row.id_post}</span> : <span className="muted">—</span>}
+                <EnteredAt at={row.id_post_at} has={row.id_post} />
             </div>
             <div className="ads-cell">
                 {row.post_date ? <span className="ads-postdate">{fmtDate(row.post_date)}</span> : <span className="muted">—</span>}

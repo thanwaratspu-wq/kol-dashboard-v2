@@ -1027,6 +1027,9 @@ a { text-decoration: none; color: inherit; }
 .ads-acc { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ads-plat { font-size: 11px; color: var(--muted); }
 .ads-cell { min-width: 0; }
+/* บรรทัดเล็กใต้ช่อง บอกวันที่นำข้อมูลเข้าระบบ
+   ตั้งใจให้จางและเล็กกว่าค่าหลักชัดเจน จะได้ไม่แย่งสายตาไปจากตัวข้อมูลเอง */
+.ads-entered { display: block; margin-top: 3px; font-size: 9.5px; line-height: 1.4; color: var(--muted); opacity: .75; white-space: nowrap; }
 .ads-camp { display: flex; flex-direction: column; gap: 4px; }
 .ads-prod { display: flex; flex-wrap: wrap; gap: 4px; }
 .ads-code { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 11px; color: var(--text); background: #f1f5f3; padding: 4px 8px; border-radius: 7px; }
