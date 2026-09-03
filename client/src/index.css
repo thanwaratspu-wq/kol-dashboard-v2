@@ -1039,6 +1039,7 @@ a { text-decoration: none; color: inherit; }
 .colf-dot.ontime { background: var(--mint); }
 .colf-dot.warn { background: #e0a72c; }
 .colf-dot.bad { background: var(--danger); }
+.colf-dot.none { background: #c3cdc8; }
 .ads-tbl-head, .ads-row {
     display: grid;
     /* KOL แคมเปญ PRODUCT TARGET CONTENT โพสต์ GENCODE ID_POST PostDate สถานะ วันยิงแอด ยิงช้า หมายเหตุ */

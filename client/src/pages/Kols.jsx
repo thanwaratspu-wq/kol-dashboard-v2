@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
 import ProductChips from '../components/ProductChips.jsx';
+import ColumnFilter from '../components/ColumnFilter.jsx';
 
 const splitCodes = v => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
 
@@ -86,6 +87,7 @@ export default function Kols() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [product, setProduct] = useState('');
+    const [perf, setPerf] = useState('');   // ''=ทั้งหมด | Good | Improve | none
     const [search, setSearch] = useState('');
 
     function load() {
@@ -112,13 +114,24 @@ export default function Kols() {
             .some(v => String(v ?? '').toLowerCase().includes(q));
     };
 
-    const shown = rows.filter(r =>
+    // แถวที่ผ่านตัวกรองอื่นครบแล้ว แต่ยังไม่กรอง Performance
+    // ใช้เป็นฐานนับจำนวนในเมนู ไม่งั้นพอเลือก Pass แล้วตัวเลขช่องอื่นจะเหลือ 0 หมด
+    const baseRows = rows.filter(r =>
         (!brand || r.brand === brand) &&
         (!platform || r.platform === platform) &&
         (!year || String(r.year) === String(year)) &&
         (!month || r.month === month) &&
         (!product || r.product === product) &&
         matchSearch(r));
+
+    const perfOpts = [
+        { value: '', label: 'ทั้งหมด', count: baseRows.length },
+        { value: 'Good', label: '✓ Pass', dot: 'ontime', count: baseRows.filter(r => r.performance === 'Good').length },
+        { value: 'Improve', label: '✕ Fail', dot: 'bad', count: baseRows.filter(r => r.performance === 'Improve').length },
+        { value: 'none', label: 'Not rated', dot: 'none', count: baseRows.filter(r => !r.performance).length }
+    ];
+
+    const shown = baseRows.filter(r => !perf || (perf === 'none' ? !r.performance : r.performance === perf));
 
     const total = shown.length;
     const budget = shown.reduce((a, r) => a + r.cost, 0);
@@ -202,7 +215,10 @@ export default function Kols() {
                             <tr>
                                 <th>Month</th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
                                 <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
-                                <th className="num">CPM</th><th className="num">CPE</th><th>Performance</th>
+                                <th className="num">CPM</th><th className="num">CPE</th><th>
+                                    Performance
+                                    <ColumnFilter label="Performance" value={perf} onPick={setPerf} options={perfOpts} />
+                                </th>
                                 <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
                                 <th>Post Link</th><th>Gencode</th><th>ID POST</th>
                             </tr>
