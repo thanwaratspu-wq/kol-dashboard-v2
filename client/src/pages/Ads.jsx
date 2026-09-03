@@ -360,7 +360,7 @@ export default function Ads() {
                         {hasFilter ? `แสดง ${rows.length} จาก ${allRows.length} โพสต์` : 'กดปุ่ม ▾ ที่หัวคอลัมน์เพื่อกรอง · กรอกข้อมูลแล้วคลิกออกจากช่องเพื่อบันทึก'}
                     </span></h3>
                     {hasFilter && (
-                        <button type="button" className="btn-ghost" onClick={() => { setPlatform(''); setStatus(''); setLate(''); }}>
+                        <button type="button" className="btn-clearfilter" onClick={() => { setPlatform(''); setStatus(''); setLate(''); }}>
                             ✕ ล้างตัวกรอง
                         </button>
                     )}
