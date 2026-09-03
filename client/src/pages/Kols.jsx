@@ -22,6 +22,7 @@ export default function Kols() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [product, setProduct] = useState('');
+    const [search, setSearch] = useState('');
 
     function load() {
         api('/kols/analytics').then(res => setData(res.data)).catch(err => setError(err.message));
@@ -38,12 +39,22 @@ export default function Kols() {
     // เอาเฉพาะแพลตฟอร์มที่มีข้อมูลจริง จะได้ไม่ขึ้นปุ่มที่กดแล้วว่างเปล่า
     const platforms = useMemo(() => [...new Set(rows.map(r => r.platform).filter(Boolean))].sort(), [rows]);
 
+    // ค้นหาทีเดียวครอบหลายช่อง — พิมพ์ชื่อ KOL, รหัสสินค้า, เอเจนซี่, เจ้าของ,
+    // คอนเซ็ปต์, Gencode หรือ ID Post ก็เจอ (ไม่สนตัวพิมพ์เล็ก-ใหญ่)
+    const matchSearch = r => {
+        const q = search.trim().toLowerCase();
+        if (!q) return true;
+        return [r.kol_name, r.product, r.agency, r.owner, r.concept, r.gencode, r.id_post, r.platform, r.brand]
+            .some(v => String(v ?? '').toLowerCase().includes(q));
+    };
+
     const shown = rows.filter(r =>
         (!brand || r.brand === brand) &&
         (!platform || r.platform === platform) &&
         (!year || String(r.year) === String(year)) &&
         (!month || r.month === month) &&
-        (!product || r.product === product));
+        (!product || r.product === product) &&
+        matchSearch(r));
 
     const total = shown.length;
     const budget = shown.reduce((a, r) => a + r.cost, 0);
@@ -56,6 +67,14 @@ export default function Kols() {
                     <p className="page-sub">Influencer Performance &amp; Demographics</p>
                 </div>
                 <div className="ka-top-filters">
+                    <div className="ka-search">
+                        <Icon name="search" size={15} />
+                        <input value={search} onChange={e => setSearch(e.target.value)}
+                            placeholder="ค้นหา KOL / สินค้า / เอเจนซี่ / Gencode..." />
+                        {search && (
+                            <button type="button" className="ka-search-x" onClick={() => setSearch('')} title="ล้างคำค้นหา">✕</button>
+                        )}
+                    </div>
                     <select value={product} onChange={e => setProduct(e.target.value)}>
                         <option value="">All Products</option>
                         {products.map(p => <option key={p} value={p}>{p}</option>)}
@@ -127,7 +146,11 @@ export default function Kols() {
                             {!data ? (
                                 <tr><td colSpan="16" className="empty">กำลังโหลด...</td></tr>
                             ) : shown.length === 0 ? (
-                                <tr><td colSpan="16" className="empty">ยังไม่มี KOL ที่คัดเลือกในเงื่อนไขที่เลือก</td></tr>
+                                <tr><td colSpan="16" className="empty">
+                                    {search.trim()
+                                        ? `ไม่พบ "${search.trim()}" — ลองพิมพ์สั้นลง หรือเช็คตัวกรองอื่นที่เลือกอยู่`
+                                        : 'ยังไม่มี KOL ที่คัดเลือกในเงื่อนไขที่เลือก'}
+                                </td></tr>
                             ) : shown.map(r => (
                                 <tr key={r.sub_id}>
                                     <td>{r.month || '—'}</td>

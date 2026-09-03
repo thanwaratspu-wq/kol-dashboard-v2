@@ -584,6 +584,24 @@ a { text-decoration: none; color: inherit; }
 /* ============ KOL ANALYTICS ============ */
 .ka-top-filters { display: flex; gap: 10px; }
 .ka-top-filters select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; font-size: 12.5px; color: var(--text); cursor: pointer; }
+/* ช่องค้นหาในหน้า KOL Analytics */
+.ka-search {
+    display: flex; align-items: center; gap: 7px; padding: 0 10px;
+    border: 1px solid var(--border); border-radius: 10px; background: #fff;
+    color: var(--muted); min-width: 280px;
+}
+.ka-search:focus-within { border-color: var(--mint); }
+.ka-search input {
+    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+    padding: 9px 0; font: inherit; font-size: 12.5px; color: var(--text);
+}
+.ka-search input::placeholder { color: var(--muted); }
+.ka-search-x {
+    border: none; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 12px; padding: 2px 4px; border-radius: 5px; line-height: 1;
+}
+.ka-search-x:hover { background: var(--bg-soft); color: var(--text); }
+@media (max-width: 900px) { .ka-search { min-width: 0; } }
 .ka-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 20px; }
 @media (max-width: 800px) { .ka-summary { grid-template-columns: 1fr; } }
 .ka-sum-card { background: var(--card); border: 1px solid rgba(226,240,234,.9); border-radius: 16px; padding: 20px 24px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px; }
