@@ -981,14 +981,18 @@ const submissions = {
     async update(subId, projectId, fields, byName) {
         const s = db.submissions.find(x => x.id === Number(subId) && (projectId == null || x.project_id === Number(projectId)));
         if (!s) return null;
-        // ช่องที่ต้องบันทึกว่าใครแก้ล่าสุดเมื่อไหร่ + ล็อกหลังยิงแอด
-        const STAMP_F = ['post_url', 'gencode', 'id_post'];
+        // ช่องที่บันทึกว่าใครแก้ล่าสุดเมื่อไหร่
+        // post_date อยู่ในนี้ด้วย เพราะต้องรู้ว่า "แจ้งวันลงงานเข้าระบบตอนไหน"
+        // เทียบกับวันที่ลงงานจริง จะได้แยกออกว่ายิงแอดช้าเพราะเราช้า หรือเพราะเพิ่งได้รับแจ้ง
+        const STAMP_F = ['post_url', 'gencode', 'id_post', 'post_date'];
+        // ล็อกหลังยิงแอดเฉพาะ 3 ช่องนี้ — post_date ไม่ล็อก เผื่อแจ้งวันผิดแล้วต้องแก้ให้ตรงความจริง
+        const LOCK_F = ['post_url', 'gencode', 'id_post'];
         const filled = v => !!(v !== null && v !== undefined && String(v).trim());
         const same = (a, b) => String(a ?? '').trim() === String(b ?? '').trim();
 
         // ยิงแอดไปแล้ว = ล็อกข้อมูลชุดนี้ ห้ามแก้ เพราะเป็นข้อมูลที่ใช้อ้างอิงกับแอดที่ยิงไปแล้ว
         if (s.ad_status === 'ยิงแล้ว') {
-            const blocked = STAMP_F.filter(f => fields[f] !== undefined && !same(fields[f], s[f]));
+            const blocked = LOCK_F.filter(f => fields[f] !== undefined && !same(fields[f], s[f]));
             if (blocked.length) {
                 const LABEL = { post_url: 'ลิงก์คลิป', gencode: 'Gencode', id_post: 'ID Post' };
                 const e = new Error(`ยิงแอดไปแล้ว จึงแก้ ${blocked.map(f => LABEL[f]).join(' / ')} ไม่ได้ — ถ้าต้องแก้จริง ให้กดสถานะกลับเป็น "ยังไม่ยิง" ก่อน`);
@@ -1074,6 +1078,7 @@ const ads = {
                     post_url_at: s.post_url_at || null, post_url_by: s.post_url_by || null,
                     gencode_at: s.gencode_at || null, gencode_by: s.gencode_by || null,
                     id_post_at: s.id_post_at || null, id_post_by: s.id_post_by || null,
+                    post_date_at: s.post_date_at || null, post_date_by: s.post_date_by || null,
                     project_id: s.project_id,
                     project_name: p ? p.name : null,
                     brand: p ? (p.brand || 'อื่นๆ') : 'อื่นๆ',

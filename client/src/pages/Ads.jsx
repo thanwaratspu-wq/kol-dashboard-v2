@@ -191,6 +191,10 @@ function AdRow({ row, onSaved }) {
 
     // ยิงแอดช้าไปกี่วันหลังวันลงคลิป (นับจาก Post Date → วันยิงแอด)
     const lateDays = (adStatus === 'ยิงแล้ว' && row.post_date && end) ? daysBetween(row.post_date, end) : null;
+    // แจ้งเข้าระบบช้าไปกี่วันหลัง KOL ลงงานจริง — แยกให้เห็นว่ายิงแอดช้าเพราะเราช้าหรือเพราะเพิ่งได้รับแจ้ง
+    const reportLag = (row.post_date && row.post_date_at)
+        ? daysBetween(row.post_date, String(row.post_date_at).slice(0, 10))
+        : null;
 
     return (
         <div className="ads-row">
@@ -232,6 +236,13 @@ function AdRow({ row, onSaved }) {
             </div>
             <div className="ads-cell">
                 {row.post_date ? <span className="ads-postdate">{fmtDate(row.post_date)}</span> : <span className="muted">—</span>}
+                <EnteredAt at={row.post_date_at} by={row.post_date_by} has={row.post_date} />
+                {reportLag !== null && reportLag >= 2 && (
+                    <span className={'ads-lag ' + (reportLag <= 3 ? 'warn' : 'bad')}
+                        title={`KOL ลงงาน ${fmtDate(row.post_date)} แต่เพิ่งแจ้งเข้าระบบ ${fmtDate(row.post_date_at)} — ช้าไป ${reportLag} วัน ทำให้เริ่มยิงแอดได้ช้าตามไปด้วย`}>
+                        แจ้งช้า {reportLag} วัน
+                    </span>
+                )}
             </div>
             <div className="ads-cell">
                 <button type="button" className={'ads-status ' + (adStatus === 'ยิงแล้ว' ? 'done' : 'pending')} onClick={toggleStatus} disabled={saving}>
