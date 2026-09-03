@@ -44,6 +44,40 @@ function PerfBadge({ row }) {
         : <span className="perf-pill bad" title={tip}>✕ Fail</span>;
 }
 
+// ช่อง Gencode / ID Post — ข้อความยาวจนถูกตัดท้าย เลยมีปุ่มคัดลอกค่าเต็มให้
+function CopyCell({ value }) {
+    const [done, setDone] = useState(false);
+    if (!value) return <td className="ka-code">—</td>;
+    async function copy() {
+        try {
+            await navigator.clipboard.writeText(value);
+        } catch {
+            // navigator.clipboard ใช้ได้เฉพาะ https กับ localhost
+            // คนที่เปิดผ่าน Wi-Fi ออฟฟิศ (http://192.168.x.x) จะตกมาทางนี้
+            const ta = document.createElement('textarea');
+            ta.value = value;
+            ta.style.cssText = 'position:fixed;top:-999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch { /* คัดลอกไม่ได้จริง ๆ */ }
+            ta.remove();
+        }
+        setDone(true);
+        setTimeout(() => setDone(false), 1400);
+    }
+    return (
+        <td className="ka-code">
+            <div className="ka-copy-wrap">
+                <span className="ka-copy-txt" title={value}>{value}</span>
+                <button type="button" className={'ka-copy' + (done ? ' done' : '')} onClick={copy}
+                    title={done ? 'คัดลอกแล้ว' : 'คัดลอก ' + value}>
+                    {done ? <Icon name="check" size={12} /> : <Icon name="copy" size={12} />}
+                </button>
+            </div>
+        </td>
+    );
+}
+
 export default function Kols() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
@@ -201,8 +235,8 @@ export default function Kols() {
                                     <td>{r.days ? `${r.days} Days` : '—'}</td>
                                     <td>{r.day_left == null ? '—' : r.day_left < 0 ? <span className="ka-expired">Expired</span> : `${r.day_left} Days`}</td>
                                     <td>{r.post_url ? <a href={r.post_url} target="_blank" rel="noreferrer" className="ka-view">View</a> : '#'}</td>
-                                    <td className="ka-code" title={r.gencode || ''}>{r.gencode || '—'}</td>
-                                    <td className="ka-code" title={r.id_post || ''}>{r.id_post || '—'}</td>
+                                    <CopyCell value={r.gencode} />
+                                    <CopyCell value={r.id_post} />
                                 </tr>
                             ))}
                         </tbody>
