@@ -5,6 +5,7 @@ import Icon from '../components/Icon.jsx';
 import ProjectForm from '../components/ProjectForm.jsx';
 import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
+import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
@@ -82,15 +83,20 @@ function AddSubmissionModal({ projectId, products = [], groups = [], onClose, on
     const g = groups.find(x => x.key === f.group_key) || null;
     // สินค้าให้เลือกเฉพาะของกลุ่มที่เลือก — ถ้ายังไม่เลือกกลุ่มค่อยใช้สินค้าทั้งแคมเปญ
     const productOpts = (g && (g.products || []).length) ? g.products : products;
-    // เลือกกลุ่มแล้วดึง Platform ของกลุ่มมาให้ และล้างสินค้าถ้าไม่มีในกลุ่มใหม่
+    // เลือกกลุ่มแล้วดึง Platform ของกลุ่มมาให้
+    // สินค้าเก็บได้หลายตัว (คั่นด้วย ,) จึงคัดเหลือเฉพาะตัวที่กลุ่มใหม่มี ไม่ใช่ล้างทิ้งทั้งหมด
     function pickGroup(key) {
         const grp = groups.find(x => x.key === key) || null;
-        setF(st => ({
-            ...st,
-            group_key: key,
-            platform: (grp && grp.platform) || st.platform,
-            product: (grp && (grp.products || []).includes(st.product)) ? st.product : ''
-        }));
+        setF(st => {
+            const cur = st.product ? String(st.product).split(',').map(x => x.trim()).filter(Boolean) : [];
+            const allow = grp ? (grp.products || []) : null;
+            return {
+                ...st,
+                group_key: key,
+                platform: (grp && grp.platform) || st.platform,
+                product: allow ? cur.filter(c => allow.includes(c)).join(',') : st.product
+            };
+        });
     }
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -166,10 +172,7 @@ function AddSubmissionModal({ projectId, products = [], groups = [], onClose, on
                         <div className="field">
                             <label>Product</label>
                             {productOpts.length > 0 ? (
-                                <select value={f.product} onChange={e => up('product', e.target.value)}>
-                                    <option value="">— เลือก —</option>
-                                    {productOpts.map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
+                                <ProductMultiSelect value={f.product} options={productOpts} onChange={v => up('product', v)} />
                             ) : <input value={f.product} onChange={e => up('product', e.target.value)} placeholder="สินค้า" />}
                         </div>
                     </div>
