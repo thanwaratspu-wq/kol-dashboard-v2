@@ -1245,15 +1245,15 @@ const reports = {
             };
         }).sort((a, b) => b.avg_views - a.avg_views);
 
-        // Top คลิป + Top channel
-        const top_videos = [...rows].filter(r => r.views > 0).sort((a, b) => b.views - a.views).slice(0, 10)
+        // Top คลิป + Top channel — เอาอันดับ 1 อย่างละอัน
+        const top_videos = [...rows].filter(r => r.views > 0).sort((a, b) => b.views - a.views).slice(0, 1)
             .map(r => ({ name: r.name, product: r.product, format: r.format, views: r.views, likes: r.likes, saves: r.saves, shares: r.shares, link: r.link }));
         const cm = groupBy('name');
         const top_channels = Object.entries(cm).map(([name, rs]) => {
             const v = rs.reduce((a, r) => a + r.views, 0);
             const e = rs.reduce((a, r) => a + r.engagement, 0);
             return { name, videos: rs.length, views: v, er: erOf(v, e), products: [...new Set(rs.map(r => r.product).filter(Boolean))] };
-        }).filter(c => c.views > 0).sort((a, b) => b.views - a.views).slice(0, 8);
+        }).filter(c => c.views > 0).sort((a, b) => b.views - a.views).slice(0, 1);
 
         // Engagement breakdown + View distribution
         const engagement_breakdown = {

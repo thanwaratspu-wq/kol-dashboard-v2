@@ -31,7 +31,7 @@ export default function Report() {
     const perfScore = k => (k.performance === 'Good' ? 100000 : 0) + (Number(k.reach) || 0) / 100 + (k.posted ? 500 : 0) + (k.boosted ? 200 : 0);
     const kolRank = [...kolRows]
         .sort((a, b) => perfScore(b) - perfScore(a) || ((a.cpm || Infinity) - (b.cpm || Infinity)) || (a.cost - b.cost))
-        .slice(0, 5);
+        .slice(0, 10);
     const medal = i => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
     const fmtV = n => { n = Number(n) || 0; if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return String(n); };
     const perf = d.performance || {};
