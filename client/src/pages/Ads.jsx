@@ -62,24 +62,41 @@ function ColumnFilter({ label, value, options, onPick }) {
     const [pos, setPos] = useState({ top: 0, left: 0 });
     const btnRef = useRef(null);
 
+    // วางเมนูให้ตรงใต้ปุ่มเสมอ (คำนวณสด ไม่ใช้ค่าที่จำไว้)
+    const place = useCallback(() => {
+        const el = btnRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        setPos({
+            top: r.bottom + 6,
+            left: Math.max(8, Math.min(r.left, window.innerWidth - 210))
+        });
+    }, []);
+
     useEffect(() => {
         if (!open) return;
-        const onDown = e => { if (!e.target.closest('.colf-menu, .colf-btn')) setOpen(false); };
+        const onDown = e => { if (!e.target.closest?.('.colf-menu, .colf-btn')) setOpen(false); };
         const onKey = e => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', onDown);
         document.addEventListener('keydown', onKey);
-        // เลื่อนตารางแล้วเมนูจะลอยผิดที่ ปิดไปเลยง่ายกว่า
-        window.addEventListener('scroll', () => setOpen(false), { once: true, capture: true });
+        // เลื่อนตาราง/ย่อขยายจอ → ขยับเมนูตามปุ่ม ไม่ใช่ปิดทิ้ง
+        // (กดปุ่มคอลัมน์ขวาสุด เบราว์เซอร์จะเลื่อนกรอบเองเพื่อดึงปุ่มเข้ามา
+        //  ถ้าสั่งปิดตอน scroll เมนูจะปิดทันทีที่เปิด)
+        window.addEventListener('scroll', place, true);
+        window.addEventListener('resize', place);
         return () => {
             document.removeEventListener('mousedown', onDown);
             document.removeEventListener('keydown', onKey);
+            window.removeEventListener('scroll', place, true);
+            window.removeEventListener('resize', place);
         };
-    }, [open]);
+    }, [open, place]);
 
     function toggle() {
-        if (!open && btnRef.current) {
-            const r = btnRef.current.getBoundingClientRect();
-            setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 210) });
+        if (!open) {
+            place();
+            // เผื่อเบราว์เซอร์เลื่อนกรอบให้ปุ่มเข้ามาในสายตาหลังได้โฟกัส — วางซ้ำหลังเลื่อนเสร็จ
+            requestAnimationFrame(place);
         }
         setOpen(o => !o);
     }
