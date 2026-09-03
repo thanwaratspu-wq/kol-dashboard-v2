@@ -584,6 +584,17 @@ a { text-decoration: none; color: inherit; }
 .draft-foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 6px; }
 
 /* ============ KOL ANALYTICS ============ */
+/* ตาราง Top Influencer — คอลัมน์เยอะ ให้เลื่อนแนวนอนในกรอบตัวเอง หน้าไม่เลื่อนตาม */
+.ti-scroll { overflow-x: auto; }
+.ti-table { min-width: 1080px; }
+.ti-table td.num, .ti-table th.num { font-variant-numeric: tabular-nums; }
+.ti-more {
+    display: block; width: 100%; padding: 11px; border: none; border-top: 1px solid var(--border);
+    background: var(--bg-soft); color: var(--mint-dark); font: inherit; font-size: 12.5px;
+    font-weight: 700; cursor: pointer; border-radius: 0 0 var(--radius) var(--radius);
+}
+.ti-more:hover { background: #dcefe5; }
+
 .ka-top-filters { display: flex; gap: 10px; }
 .ka-top-filters select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; font-size: 12.5px; color: var(--text); cursor: pointer; }
 /* ช่องค้นหาในหน้า KOL Analytics */

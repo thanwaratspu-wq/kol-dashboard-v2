@@ -4,6 +4,7 @@ import Icon from '../components/Icon.jsx';
 import BudgetTrendModal from '../components/BudgetTrendModal.jsx';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
+const TOP_PREVIEW = 5;   // Top Influencer แสดงกี่อันดับก่อนกดดูเพิ่ม
 
 const PLATFORM_CARDS = [
     { key: 'TikTok', label: 'TikTok', badge: '♪', color: '#010101', bar: '#010101' },
@@ -36,6 +37,7 @@ export default function Dashboard() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [showTrend, setShowTrend] = useState(false);
+    const [showAllKols, setShowAllKols] = useState(false);   // Top Influencer: 5 อันดับแรก vs ทั้ง 20
 
     useEffect(() => {
         const q = new URLSearchParams();
@@ -52,6 +54,10 @@ export default function Dashboard() {
 
     const platformMap = {};
     (data?.platforms || []).forEach(p => { platformMap[p.platform] = p; });
+
+    // Top Influencer — server ส่งมา 20 อันดับ แสดง 5 อันดับแรกก่อน กดดูที่เหลือได้
+    const topKols = data?.top_kols || [];
+    const shownKols = showAllKols ? topKols : topKols.slice(0, TOP_PREVIEW);
 
     const budgetUsedPct = data && data.total_budget > 0
         ? Math.min(100, Math.round((data.total_spent / data.total_budget) * 100)) : 0;
@@ -186,25 +192,49 @@ export default function Dashboard() {
             {/* โซน 4: อันดับ Influencer */}
             <div className="dash-section"><span className="dash-bar" /> Top Influencer <span className="dash-section-sub">อันดับตามยอดวิว</span></div>
             <div className="panel no-pad">
-                <table className="data-table">
-                    <thead>
-                        <tr><th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th><th className="num">ยอดวิว</th><th className="num">Engagement</th><th className="num">ค่าตัวรวม</th></tr>
-                    </thead>
-                    <tbody>
-                        {(data?.top_kols || []).length === 0 ? (
-                            <tr><td colSpan="6" className="empty">ยังไม่มีข้อมูล</td></tr>
-                        ) : data.top_kols.map((k, i) => (
-                            <tr key={k.kol_id}>
-                                <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
-                                <td><strong>{k.name}</strong></td>
-                                <td>{k.platform ? <span className="tag">{k.platform}</span> : '—'}</td>
-                                <td className="num">{fmtNum(k.views)}</td>
-                                <td className="num">{k.engagement != null ? k.engagement + '%' : '—'}</td>
-                                <td className="num">{fmtMoney(k.fee)}</td>
+                <div className="ti-scroll">
+                    <table className="data-table ti-table">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>ชื่อ</th><th>แพลตฟอร์ม</th>
+                                <th className="num">ยอดวิว (แอด)</th>
+                                <th className="num">Views</th><th className="num">Likes</th><th className="num">Comments</th>
+                                <th className="num">Saves</th><th className="num">Shares</th>
+                                <th className="num">Engagement</th>
+                                <th className="num">CPM</th><th className="num">CPE</th>
+                                <th className="num">ค่าตัวรวม</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {topKols.length === 0 ? (
+                                <tr><td colSpan="13" className="empty">ยังไม่มีข้อมูล</td></tr>
+                            ) : shownKols.map((k, i) => (
+                                <tr key={k.kol_id}>
+                                    <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
+                                    <td><strong>{k.name}</strong></td>
+                                    <td>{k.platform ? <span className="tag">{k.platform}</span> : '—'}</td>
+                                    <td className="num">{fmtNum(k.views)}</td>
+                                    <td className="num">{fmtNum(k.content_views)}</td>
+                                    <td className="num">{fmtNum(k.likes)}</td>
+                                    <td className="num">{fmtNum(k.comments)}</td>
+                                    <td className="num">{fmtNum(k.saves)}</td>
+                                    <td className="num">{fmtNum(k.shares)}</td>
+                                    <td className="num">{k.engagement != null ? k.engagement + '%' : '—'}</td>
+                                    <td className="num">{k.cpm ? fmtMoney(k.cpm) : '—'}</td>
+                                    <td className="num">{k.cpe ? fmtMoney(k.cpe) : '—'}</td>
+                                    <td className="num">{fmtMoney(k.fee)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {topKols.length > TOP_PREVIEW && (
+                    <button type="button" className="ti-more" onClick={() => setShowAllKols(v => !v)}>
+                        {showAllKols
+                            ? '▲ ย่อกลับเหลือ 5 อันดับแรก'
+                            : `▼ ดูอันดับ ${TOP_PREVIEW + 1}-${topKols.length} (อีก ${topKols.length - TOP_PREVIEW} คน)`}
+                    </button>
+                )}
             </div>
 
             {showTrend && <BudgetTrendModal brand={filters.brand} onClose={() => setShowTrend(false)} />}
