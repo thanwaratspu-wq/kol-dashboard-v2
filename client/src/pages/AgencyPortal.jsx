@@ -82,10 +82,10 @@ function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agen
                     </div>
                     <div className="field-row">
                         <div className="field">
-                            <label>ผู้ติดต่อ KOL</label>
+                            <label>KOL Contact</label>
                             {agencyName
                                 ? <input value={agencyName} readOnly className="agency-locked" title="ชื่อเอเจนซี่ (จากลิงก์)" />
-                                : <input value={f.agency} onChange={e => up('agency', e.target.value)} placeholder="ผู้ติดต่อ KOL" />}
+                                : <input value={f.agency} onChange={e => up('agency', e.target.value)} placeholder="KOL Contact" />}
                         </div>
                         <div className="field">
                             <label>Budget (฿)</label>
@@ -276,7 +276,7 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
                             <ProductMultiSelect value={en.product} options={groupProducts} onChange={v => upRow(i, 'product', v)} />
                             {agencyName
                                 ? <input value={agencyName} readOnly className="agency-locked" title="ชื่อเอเจนซี่ (จากลิงก์)" />
-                                : <input value={en.agency} onChange={e => upRow(i, 'agency', e.target.value)} placeholder="ผู้ติดต่อ" />}
+                                : <input value={en.agency} onChange={e => upRow(i, 'agency', e.target.value)} placeholder="Contact" />}
                             <input type="number" min="0" value={en.budget} onChange={e => upRow(i, 'budget', e.target.value)} placeholder="฿" />
                             <input type="url" value={en.link_account} onChange={e => upRow(i, 'link_account', e.target.value)} placeholder="https://..." />
                             <div className="atr-action">
@@ -582,7 +582,7 @@ export default function AgencyPortal() {
                                                 )}
                                                 {info.agency_name
                                                     ? <input value={info.agency_name} readOnly className="agency-locked" title="ชื่อเอเจนซี่ (จากลิงก์)" />
-                                                    : <input value={en.agency} onChange={e => updateEntry(i, 'agency', e.target.value)} placeholder="ผู้ติดต่อ KOL" />}
+                                                    : <input value={en.agency} onChange={e => updateEntry(i, 'agency', e.target.value)} placeholder="KOL Contact" />}
                                                 <input type="number" min="0" value={en.budget} onChange={e => updateEntry(i, 'budget', e.target.value)} placeholder="฿ Budget" />
                                                 <input type="url" value={en.link_account} onChange={e => updateEntry(i, 'link_account', e.target.value)} placeholder="https://..." />
                                                 <div className="atr-action">

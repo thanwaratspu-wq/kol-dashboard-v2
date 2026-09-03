@@ -248,7 +248,7 @@ export default function Report() {
             <div className="panel no-pad">
                 <div className="panel-head"><h3>📋 รายละเอียด KOL ทั้งหมด</h3></div>
                 <table className="data-table">
-                    <thead><tr><th>#</th><th>KOL NAME</th><th>PRODUCT</th><th>ผู้ติดต่อ KOL</th><th className="num">COST</th><th>LINK</th><th className="num">CPM</th><th className="num">CPE</th><th>PERFORMANCE</th></tr></thead>
+                    <thead><tr><th>#</th><th>KOL NAME</th><th>PRODUCT</th><th>KOL CONTACT</th><th className="num">COST</th><th>LINK</th><th className="num">CPM</th><th className="num">CPE</th><th>PERFORMANCE</th></tr></thead>
                     <tbody>
                         {kolRows.length === 0 ? (
                             <tr><td colSpan="9" className="empty">ไม่มี KOL ในแพลตฟอร์มนี้</td></tr>
