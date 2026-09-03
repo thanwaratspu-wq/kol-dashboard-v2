@@ -203,11 +203,12 @@ export default function Dashboard() {
                                 <th className="num">Saves</th><th className="num">Shares</th>
                                 <th className="num">Engagement</th>
                                 <th className="num">CPM</th><th className="num">CPE</th>
+                                <th className="num">Score</th>
                             </tr>
                         </thead>
                         <tbody>
                             {topKols.length === 0 ? (
-                                <tr><td colSpan="14" className="empty">ยังไม่มีข้อมูล</td></tr>
+                                <tr><td colSpan="15" className="empty">ยังไม่มีข้อมูล</td></tr>
                             ) : shownKols.map((k, i) => (
                                 <tr key={k.kol_id}>
                                     <td><span className={'rank rank-' + (i + 1)}>{i + 1}</span></td>
@@ -224,6 +225,11 @@ export default function Dashboard() {
                                     <td className="num">{k.engagement != null ? k.engagement + '%' : '—'}</td>
                                     <td className="num">{k.cpm ? fmtMoney(k.cpm) : '—'}</td>
                                     <td className="num">{k.cpe ? fmtMoney(k.cpe) : '—'}</td>
+                                    <td className="num">
+                                        {k.score == null
+                                            ? <span className="muted" title="ยังไม่ได้กรอกผลงานคอนเทนต์">—</span>
+                                            : <span className="ti-score" title="คะแนนรวม: ER 35% · Views 25% · CPM 20% · CPE 20% (CPM/CPE ยิ่งต่ำยิ่งได้คะแนนมาก)">{k.score}</span>}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

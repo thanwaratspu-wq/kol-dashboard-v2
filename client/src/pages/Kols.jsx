@@ -138,15 +138,16 @@ export default function Kols() {
                             <tr>
                                 <th>Month</th><th>Product</th><th>KOL Name</th><th>Link</th><th>Concept</th>
                                 <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
+                                <th className="num">CPM</th><th className="num">CPE</th><th>Performance</th>
                                 <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
                                 <th>Post Link</th><th>Gencode</th><th>ID POST</th>
                             </tr>
                         </thead>
                         <tbody>
                             {!data ? (
-                                <tr><td colSpan="16" className="empty">กำลังโหลด...</td></tr>
+                                <tr><td colSpan="19" className="empty">กำลังโหลด...</td></tr>
                             ) : shown.length === 0 ? (
-                                <tr><td colSpan="16" className="empty">
+                                <tr><td colSpan="19" className="empty">
                                     {search.trim()
                                         ? `ไม่พบ "${search.trim()}" — ลองพิมพ์สั้นลง หรือเช็คตัวกรองอื่นที่เลือกอยู่`
                                         : 'ยังไม่มี KOL ที่คัดเลือกในเงื่อนไขที่เลือก'}
@@ -162,6 +163,15 @@ export default function Kols() {
                                     <td className="muted">{r.owner || '—'}</td>
                                     <td className="muted">{r.agency || '—'}</td>
                                     <td className="num">{N(r.cost)}</td>
+                                    <td className="num">{r.cpm ? '฿' + N(r.cpm) : '—'}</td>
+                                    <td className="num">{r.cpe ? '฿' + N(r.cpe) : '—'}</td>
+                                    <td>
+                                        {r.performance === 'Good'
+                                            ? <span className="perf-good" title={`CPM ≤ 28 และ CPE ≤ 1.5 (ต้นทุนรวม ${N(r.total_cost)} บาท)`}>✓ Good</span>
+                                            : r.performance === 'Improve'
+                                                ? <span className="perf-improve" title={`CPM ${N(r.cpm)} · CPE ${N(r.cpe)} — เกินเกณฑ์ CPM 28 / CPE 1.5`}>ควรปรับปรุง</span>
+                                                : <span className="muted" title="ยังไม่ได้กรอกผลงานคอนเทนต์">—</span>}
+                                    </td>
                                     <td>{fmtD(r.post_date)}</td>
                                     <td>{fmtD(r.gen_date)}</td>
                                     <td>{r.days ? `${r.days} Days` : '—'}</td>

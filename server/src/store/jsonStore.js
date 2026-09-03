@@ -48,6 +48,12 @@ function nextId(coll) {
 }
 
 const clone = (v) => (v === undefined ? undefined : structuredClone(v));
+
+// เกณฑ์ตัดสินว่า KOL คนนี้ "คุ้มค่า" ไหม — ใช้ที่หน้า Report และ Influencer
+// (หน้า Dashboard ใช้คะแนนไล่ระดับแทน ไม่ใช้เกณฑ์ผ่าน/ไม่ผ่านนี้)
+// ต้นทุนที่ใช้คิดคือ ค่าตัว + ค่ายิงแอด และยอดวิว/engagement มาจากคอนเทนต์จริง
+const GOOD_CPM = 28;
+const GOOD_CPE = 1.5;
 const now = () => new Date().toISOString();
 
 // จำลอง error รหัส '23505' (unique violation) ให้ route จัดการเหมือน PostgreSQL
@@ -294,6 +300,22 @@ const kols = {
                     const expire = new Date(s.post_date + 'T00:00:00').getTime() + days * 86400000;
                     day_left = Math.ceil((expire - today.getTime()) / 86400000);
                 }
+                // ผลงานคอนเทนต์ + เกณฑ์ผ่าน/ไม่ผ่าน (ต้นทุน = ค่าตัว + ค่ายิงแอด)
+                const views = Number(s.views) || 0;
+                const likes = Number(s.likes) || 0, comments = Number(s.comments) || 0;
+                const saves = Number(s.saves) || 0, shares = Number(s.shares) || 0;
+                const engagement = likes + comments + saves + shares;
+                const totalCost = (Number(s.budget) || 0) + (Number(s.ad_spend) || 0);
+                const cpm = views > 0 ? Number((totalCost / (views / 1000)).toFixed(2)) : 0;
+                const cpe = engagement > 0 ? Number((totalCost / engagement).toFixed(2)) : 0;
+                const er = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+                const perf = {
+                    views, likes, comments, saves, shares, engagement, er,
+                    ad_spend: Number(s.ad_spend) || 0, total_cost: totalCost, cpm, cpe,
+                    performance: views > 0
+                        ? ((cpm > 0 && cpm <= GOOD_CPM && cpe > 0 && cpe <= GOOD_CPE) ? 'Good' : 'Improve')
+                        : null   // ยังไม่กรอกผลงาน = ยังตัดสินไม่ได้
+                };
                 return {
                     sub_id: s.id, project_id: s.project_id, project_name: p ? p.name : null,
                     brand: p ? (p.brand || null) : null, month, year,
@@ -301,6 +323,7 @@ const kols = {
                     concept: s.concept || null, platform: s.platform || null,
                     owner: p ? (p.owner || null) : null, agency: s.agency || null,
                     cost: Number(s.budget) || 0,
+                    ...perf,
                     post_date: s.post_date || null, gen_date: genStart, days, day_left,
                     post_url: s.post_url || null, gencode: s.gencode || null, id_post: s.id_post || null
                 };
@@ -308,7 +331,12 @@ const kols = {
             .sort((a, b) => (b.post_date || '').localeCompare(a.post_date || ''));
 
         const budget = rows.reduce((a, r) => a + r.cost, 0);
-        return clone({ summary: { total_kols: rows.length, budget, avg_engagement: 0 }, rows });
+        // ER เฉลี่ยนับเฉพาะคนที่กรอกผลงานแล้ว ไม่งั้นคนที่ยังไม่กรอกจะดึงค่าเฉลี่ยลง
+        const measured = rows.filter(r => r.views > 0);
+        const avg_engagement = measured.length
+            ? Number((measured.reduce((a, r) => a + r.er, 0) / measured.length).toFixed(2))
+            : 0;
+        return clone({ summary: { total_kols: rows.length, budget, avg_engagement }, rows });
     }
 };
 
@@ -592,45 +620,76 @@ const dashboard = {
         //   CPE = ค่าตัว / engagement รวม        ยิ่งต่ำยิ่งคุ้ม
         // (ไม่เดา engagement เป็น % ของ reach แบบที่หน้า Report ทำอยู่ เพราะมีตัวเลขจริงแล้ว)
         //
-        // เกณฑ์จัดอันดับ เรียงตามลำดับความสำคัญ:
-        //   1) คนที่มีข้อมูลคอนเทนต์แล้ว อยู่เหนือคนที่ยังไม่กรอก
-        //   2) ผ่านเกณฑ์คุ้มค่า (CPM <= 28 และ CPE <= 1.5) — เกณฑ์เดียวกับ Good Performance ในหน้า Report
-        //   3) Engagement rate สูงกว่า = คอนเทนต์มีคุณภาพกว่า
-        //   4) ยอดวิวมากกว่า = เข้าถึงคนได้กว้างกว่า
-        const GOOD_CPM = 28, GOOD_CPE = 1.5;
-        const topKols = [...subs]
-            .map(s => {
-                const views = Number(s.views) || 0;        // ยอดวิวคอนเทนต์
-                const likes = Number(s.likes) || 0;
-                const comments = Number(s.comments) || 0;
-                const saves = Number(s.saves) || 0;
-                const shares = Number(s.shares) || 0;
-                const engagementTotal = likes + comments + saves + shares;
-                const fee = Number(s.budget) || 0;
-                const cpm = views > 0 ? Number((fee / (views / 1000)).toFixed(2)) : 0;
-                const cpe = engagementTotal > 0 ? Number((fee / engagementTotal).toFixed(2)) : 0;
-                const er = views > 0 ? Number(((engagementTotal / views) * 100).toFixed(2)) : null;
-                const measured = views > 0;                // กรอกผลงานแล้วหรือยัง
-                return {
-                    kol_id: s.id, name: s.account_name, platform: s.platform || null,
-                    brand: (projById[s.project_id] || {}).brand || null,   // แบรนด์มาจากแคมเปญที่ KOL คนนี้สังกัด
-                    product: s.product || null,
-                    fee,
-                    views,                                  // ยอดวิวคอนเทนต์ (เดิมช่องนี้เป็น reach จากแอด)
-                    ad_reach: Number(s.ad_reach) || 0,      // เก็บไว้ให้ดูเทียบ ไม่ได้ใช้จัดอันดับแล้ว
-                    likes, comments, saves, shares,
-                    engagement_total: engagementTotal,
-                    engagement: er,                         // อัตราส่วน % (หน้าเว็บเติม % ต่อท้าย)
-                    cpm, cpe,
-                    measured,
-                    good: measured && cpm > 0 && cpm <= GOOD_CPM && cpe > 0 && cpe <= GOOD_CPE
-                };
-            })
+        // เกณฑ์จัดอันดับ = คะแนนรวม 0-100 (ไล่ระดับ ไม่ใช่ผ่าน/ไม่ผ่าน)
+        //   Engagement Rate 35% · Views 25% · CPM 20% · CPE 20%
+        //   CPM/CPE ยิ่งต่ำยิ่งได้คะแนนมาก · เทียบกันเองในกลุ่มที่แสดงอยู่
+        //   คนที่ยังไม่กรอกผลงาน (views = 0) ไม่มีคะแนน และตกไปท้ายสุด
+        // หมายเหตุ: เกณฑ์ผ่าน/ไม่ผ่าน (Good/Improve) ย้ายไปอยู่หน้า Report กับ Influencer
+        const SCORE_W = { er: 0.35, views: 0.25, cpm: 0.20, cpe: 0.20 };
+        const kolRows = [...subs].map(s => {
+            const views = Number(s.views) || 0;        // ยอดวิวคอนเทนต์
+            const likes = Number(s.likes) || 0;
+            const comments = Number(s.comments) || 0;
+            const saves = Number(s.saves) || 0;
+            const shares = Number(s.shares) || 0;
+            const engagementTotal = likes + comments + saves + shares;
+            const fee = Number(s.budget) || 0;
+            const adSpend = Number(s.ad_spend) || 0;
+            const cost = fee + adSpend;                // ต้นทุนรวม = ค่าตัว + ค่ายิงแอด
+            const cpm = views > 0 ? Number((cost / (views / 1000)).toFixed(2)) : 0;
+            const cpe = engagementTotal > 0 ? Number((cost / engagementTotal).toFixed(2)) : 0;
+            return {
+                kol_id: s.id, name: s.account_name, platform: s.platform || null,
+                brand: (projById[s.project_id] || {}).brand || null,   // แบรนด์มาจากแคมเปญที่ KOL คนนี้สังกัด
+                product: s.product || null,
+                fee, ad_spend: adSpend, cost,
+                views,                                  // ยอดวิวคอนเทนต์ ไม่ใช่ reach จากแอด
+                ad_reach: Number(s.ad_reach) || 0,      // เก็บไว้เทียบ ไม่ได้ใช้จัดอันดับ
+                likes, comments, saves, shares,
+                engagement_total: engagementTotal,
+                engagement: views > 0 ? Number(((engagementTotal / views) * 100).toFixed(2)) : null,
+                cpm, cpe,
+                measured: views > 0                     // กรอกผลงานแล้วหรือยัง
+            };
+        });
+
+        // ให้คะแนนโดยเทียบกันเองเฉพาะคนที่มีข้อมูลแล้ว
+        const scored = kolRows.filter(k => k.measured);
+        const spread = (arr, pick) => {
+            const v = arr.map(pick);
+            return { min: Math.min(...v), max: Math.max(...v) };
+        };
+        const norm = (val, r, lowerIsBetter) => {
+            if (r.max === r.min) return 1;              // ทุกคนเท่ากัน ตัวนี้ไม่ช่วยตัดสิน
+            const t = (val - r.min) / (r.max - r.min);
+            return lowerIsBetter ? 1 - t : t;
+        };
+        if (scored.length) {
+            const rEr = spread(scored, k => k.engagement || 0);
+            const rVw = spread(scored, k => k.views);
+            const rCpm = spread(scored, k => k.cpm);
+            const withEng = scored.filter(k => k.engagement_total > 0);
+            const rCpe = withEng.length ? spread(withEng, k => k.cpe) : { min: 0, max: 0 };
+            kolRows.forEach(k => {
+                if (!k.measured) { k.score = null; return; }
+                // ไม่มี engagement เลย = แย่สุดของแกน CPE (ไม่ใช่ดีสุด แม้ตัวเลข cpe จะเป็น 0)
+                const cpeScore = k.engagement_total > 0 ? norm(k.cpe, rCpe, true) : 0;
+                k.score = Number((100 * (
+                    SCORE_W.er * norm(k.engagement || 0, rEr) +
+                    SCORE_W.views * norm(k.views, rVw) +
+                    SCORE_W.cpm * norm(k.cpm, rCpm, true) +
+                    SCORE_W.cpe * cpeScore
+                )).toFixed(1));
+            });
+        } else {
+            kolRows.forEach(k => { k.score = null; });
+        }
+
+        const topKols = kolRows
             .sort((a, b) =>
-                (b.measured - a.measured) ||               // มีข้อมูลก่อน
-                (b.good - a.good) ||                       // ผ่านเกณฑ์คุ้มค่าก่อน
-                ((b.engagement || 0) - (a.engagement || 0)) || // ER สูงกว่า
-                (b.views - a.views)                        // ยอดวิวมากกว่า
+                (b.measured - a.measured) ||            // คนที่กรอกผลงานแล้วขึ้นก่อน
+                ((b.score || 0) - (a.score || 0)) ||    // คะแนนรวมสูงกว่า
+                (b.views - a.views)                     // ตัดเสมอด้วยยอดวิว
             )
             .slice(0, 20);
 
@@ -1050,25 +1109,29 @@ const reports = {
         if (!p) return null;
         if (scopeTeamId != null && p.team_id !== Number(scopeTeamId)) return null;
 
-        const ENG = 0.02; // สมมติ engagement ~2% ของ reach (ใช้คำนวณ CPE เมื่อไม่มีข้อมูล engagement โดยตรง)
         const subs = db.submissions.filter(s => s.project_id === p.id && s.status === 'confirmed');
         const rows = subs.map((s, i) => {
-            const cost = Number(s.budget) || 0;
-            const reach = Number(s.ad_reach) || 0;
-            const cpm = reach > 0 ? Number((cost / (reach / 1000)).toFixed(2)) : 0;
-            const cpe = reach > 0 ? Number((cost / (reach * ENG)).toFixed(2)) : 0;
-            const posted = !!(s.post_url && String(s.post_url).trim());
-            const boosted = s.ad_status === 'ยิงแล้ว';
-            const good = reach > 0 && cpm <= 28 && cpe <= 1.5;
-            // ผลงานคอนเทนต์
+            // ผลงานคอนเทนต์ — ตัวเลขจริงจากคลิป ไม่ใช่จากการยิงแอด
             const views = Number(s.views) || 0;
             const likes = Number(s.likes) || 0, comments = Number(s.comments) || 0, saves = Number(s.saves) || 0, shares = Number(s.shares) || 0;
             const engagement = likes + comments + saves + shares;
             const er = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+
+            const fee = Number(s.budget) || 0;
+            const adSpend = Number(s.ad_spend) || 0;
+            const cost = fee + adSpend;                 // ต้นทุนรวม = ค่าตัว + ค่ายิงแอด
+            const reach = Number(s.ad_reach) || 0;
+            // CPM/CPE คิดจากยอดคอนเทนต์จริง (เดิมใช้ reach และเดา engagement เป็น 2% ของ reach)
+            const cpm = views > 0 ? Number((cost / (views / 1000)).toFixed(2)) : 0;
+            const cpe = engagement > 0 ? Number((cost / engagement).toFixed(2)) : 0;
+            const posted = !!(s.post_url && String(s.post_url).trim());
+            const boosted = s.ad_status === 'ยิงแล้ว';
+            // เกณฑ์ผ่าน/ไม่ผ่าน อยู่ที่หน้านี้กับหน้า Influencer (หน้า Dashboard ใช้คะแนนไล่ระดับแทน)
+            const good = views > 0 && cpm > 0 && cpm <= GOOD_CPM && cpe > 0 && cpe <= GOOD_CPE;
             return {
                 idx: i + 1, name: s.account_name, platform: s.platform || null,
                 product: s.product || null, agency: s.agency || null,
-                cost, ad_spend: Number(s.ad_spend) || 0, reach,
+                cost: fee, ad_spend: adSpend, total_cost: cost, reach,
                 link: s.post_url || s.link_account || null,
                 cpm, cpe, performance: good ? 'Good' : 'Improve', posted, boosted,
                 views, likes, comments, saves, shares, engagement, er, format: s.content_format || null

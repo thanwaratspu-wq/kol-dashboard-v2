@@ -586,7 +586,8 @@ a { text-decoration: none; color: inherit; }
 /* ============ KOL ANALYTICS ============ */
 /* ตาราง Top Influencer — คอลัมน์เยอะ ให้เลื่อนแนวนอนในกรอบตัวเอง หน้าไม่เลื่อนตาม */
 .ti-scroll { overflow-x: auto; }
-.ti-table { min-width: 1200px; }
+.ti-table { min-width: 1290px; }
+.ti-score { display: inline-block; min-width: 42px; padding: 2px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--mint-dark); font-weight: 800; font-size: 12.5px; }
 .ti-table td.num, .ti-table th.num { font-variant-numeric: tabular-nums; }
 .ti-more {
     display: block; width: 100%; padding: 11px; border: none; border-top: 1px solid var(--border);
