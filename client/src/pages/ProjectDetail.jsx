@@ -178,8 +178,8 @@ function AddSubmissionModal({ projectId, products = [], groups = [], onClose, on
                     </div>
                     <div className="field-row">
                         <div className="field">
-                            <label>Agency</label>
-                            <input value={f.agency} onChange={e => up('agency', e.target.value)} placeholder="ชื่อเอเจนซี่" />
+                            <label>ผู้ติดต่อ KOL</label>
+                            <input value={f.agency} onChange={e => up('agency', e.target.value)} placeholder="ชื่อเอเจนซี่ หรือคนในทีมที่ติดต่อ" />
                         </div>
                         <div className="field">
                             <label>Budget (฿)</label>
@@ -418,7 +418,7 @@ export default function ProjectDetail() {
                 <div className={'panel no-pad ' + extraCls}>
                     <table className="data-table tight">
                         <thead><tr>
-                            <th>ชื่อ Account</th><th>Platform</th><th>Product</th><th>Agency</th>
+                            <th>ชื่อ Account</th><th>Platform</th><th>Product</th><th>ผู้ติดต่อ KOL</th>
                             <th className="num">Budget</th><th>ลิงก์</th><th>หมายเหตุ</th><th className="actions">{actionLabel}</th>
                             <th className="tbl-spacer" aria-hidden="true"></th>
                         </tr></thead>

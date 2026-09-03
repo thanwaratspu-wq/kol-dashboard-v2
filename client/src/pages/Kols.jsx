@@ -243,7 +243,7 @@ export default function Kols() {
                                         <span className="ka-sort-ico">{sort === 'month-desc' ? '▼' : sort === 'month-asc' ? '▲' : '⇅'}</span>
                                     </button>
                                 </th><th>Product</th><th>KOL Name</th><th>Link</th><th>ชื่อ Project</th>
-                                <th>Platform</th><th>Project Owner</th><th>Agency</th><th className="num">COST</th>
+                                <th>Platform</th><th>Project Owner</th><th>ผู้ติดต่อ KOL</th><th className="num">COST</th>
                                 <th className="num">CPM</th><th className="num">CPE</th><th className="ka-sort-th">
                                     <button type="button" className={'ka-sort' + (sort.startsWith('perf-') ? ' on' : '')} onClick={sortByPerf}
                                         title={sort === 'perf-best' ? 'เรียง: ผ่านเกณฑ์ขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นไม่ผ่านขึ้นก่อน'
