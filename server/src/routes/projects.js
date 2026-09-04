@@ -74,6 +74,14 @@ router.get('/', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// GET /api/projects/chats/all — รายการห้องแชททุกแคมเปญ (ไว้ทำกล่องแชทลอยที่อยู่ทุกหน้า)
+router.get('/chats/all', async (req, res, next) => {
+    try {
+        const scope = req.user.role === 'admin' ? null : req.user.team_id;
+        const data = await store.projects.listTeamChats(scope);
+        res.json({ status: 'success', data });
+    } catch (err) { next(err); }
+});
 // GET /api/projects/:id — รายละเอียด + KOL ใน project
 router.get('/:id', async (req, res, next) => {
     try {

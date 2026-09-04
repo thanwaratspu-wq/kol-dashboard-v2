@@ -2103,6 +2103,34 @@ a { text-decoration: none; color: inherit; }
 .chatdock .msgbox-composer { padding: 10px; gap: 6px; }
 .chatdock .msgbox-send { padding: 0 13px; }
 
+/* ปุ่มย้อนกลับไปรายการห้อง */
+.chatdock-back {
+    flex-shrink: 0; width: 26px; height: 28px; border: none; border-radius: 8px;
+    background: rgba(255,255,255,.16); color: #fff; font-size: 18px; line-height: 1; cursor: pointer;
+}
+.chatdock-back:hover { background: rgba(255,255,255,.3); }
+
+/* รายการห้องแชท (ฝั่งทีม เห็นทุกเอเจนซี่ทุกแคมเปญ) */
+.chatdock-list { max-height: 380px; overflow-y: auto; background: var(--card); }
+.chatdock-none { padding: 26px 16px; text-align: center; font-size: 12.5px; color: var(--muted); }
+.chatdock-room {
+    display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 11px 14px;
+    border: none; border-bottom: 1px solid var(--border); background: var(--card);
+    font: inherit; text-align: start; cursor: pointer;
+}
+.chatdock-room:last-child { border-bottom: none; }
+.chatdock-room:hover { background: var(--bg-soft); }
+.chatdock-room-top { display: flex; align-items: center; gap: 7px; }
+.chatdock-room-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatdock-room-when { flex-shrink: 0; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chatdock-room-n {
+    flex-shrink: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    background: var(--danger); color: #fff; font-size: 10.5px; font-weight: 800;
+    display: grid; place-items: center; font-variant-numeric: tabular-nums;
+}
+.chatdock-room-proj { font-size: 10.5px; font-weight: 600; color: var(--mint-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatdock-room-last { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* จอแคบ: ให้กล่องกินเกือบเต็มความกว้าง แต่ยังลอยอยู่ล่าง */
 @media (max-width: 460px) {
     .chatdock { inset-inline: 10px; inset-inline-end: 10px; bottom: 10px; }

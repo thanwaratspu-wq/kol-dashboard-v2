@@ -475,6 +475,29 @@ const projects = {
         persist();
         return clone(link);
     },
+    // รวมห้องแชททุกแคมเปญที่ทีมนี้มองเห็น — ใช้ทำรายการห้องในกล่องแชทลอย
+    // scopeTeamId = null คือ admin เห็นหมด
+    async listTeamChats(scopeTeamId) {
+        const out = [];
+        for (const p of db.projects) {
+            if (scopeTeamId != null && p.team_id !== Number(scopeTeamId)) continue;
+            for (const l of (p.agency_links || [])) {
+                const msgs = l.messages || [];
+                const readAt = l.team_read_at ? new Date(l.team_read_at).getTime() : 0;
+                const unread = msgs.filter(m => m.from !== 'team' && new Date(m.at).getTime() > readAt).length;
+                const last = msgs.length ? msgs[msgs.length - 1] : null;
+                out.push({
+                    project_id: p.id, project_name: p.name, token: l.token,
+                    agency_name: l.name, unread,
+                    last: last ? { text: last.text || (last.image ? '[รูปภาพ]' : ''), at: last.at, from: last.from } : null
+                });
+            }
+        }
+        // ห้องที่มีข้อความใหม่ขึ้นก่อน แล้วเรียงตามข้อความล่าสุด ห้องที่ยังไม่เคยคุยไปท้าย
+        out.sort((a, b) => (b.unread - a.unread)
+            || (new Date(b.last?.at || 0) - new Date(a.last?.at || 0)));
+        return clone(out);
+    },
     // ---------- ข้อความคุยกันระหว่างทีมกับเอเจนซี่ (ห้องละ 1 ลิงก์เอเจนซี่) ----------
     // msg = { id, from: "team"|"agency", by, text, image?: {filename,original,size}, at }
     async addAgencyMessage(id, token, msg) {

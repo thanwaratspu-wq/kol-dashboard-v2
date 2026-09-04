@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Icon from './Icon.jsx';
 import ChangePasswordModal from './ChangePasswordModal.jsx';
+import ChatDock from './ChatDock.jsx';
 
 const MAIN_NAV = [
     { to: '/', label: 'ภาพรวม', icon: 'dashboard', end: true },
@@ -82,6 +83,8 @@ export default function Layout() {
             <main className="content">
                 <Outlet />
             </main>
+            {/* กล่องแชทลอย — อยู่ทุกหน้าฝั่งทีม เลือกห้องเอเจนซี่จากในกล่องได้เลย */}
+            <ChatDock mode="list" />
         </div>
     );
 }

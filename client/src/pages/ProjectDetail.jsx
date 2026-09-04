@@ -7,7 +7,6 @@ import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
 import { unreadCount } from '../components/MessageBox.jsx';
-import ChatDock from '../components/ChatDock.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
@@ -289,7 +288,6 @@ export default function ProjectDetail() {
     const [deleting, setDeleting] = useState(false);
     const [submissions, setSubmissions] = useState([]);
     const [agencyLinks, setAgencyLinks] = useState([]);
-    const [chatWith, setChatWith] = useState(null);      // เอเจนซี่ที่กำลังเปิดห้องคุยอยู่
     const [chatUnread, setChatUnread] = useState({});    // { token: จำนวนที่ยังไม่ได้อ่าน }
 
     // นับข้อความที่เอเจนซี่ส่งมาแล้วเรายังไม่ได้เปิดอ่าน — เช็คซ้ำทุก 30 วิ เหมือนในห้องแชท
@@ -721,7 +719,9 @@ export default function ProjectDetail() {
                                         onDelete={() => deleteLink(l.token)}
                                         projectId={id}
                                         unread={chatUnread[l.token] || 0}
-                                        onChat={() => setChatWith(l)}
+                                        onChat={() => window.dispatchEvent(new CustomEvent('kol:open-chat', {
+                                            detail: { project_id: id, project_name: project.name, token: l.token, agency_name: l.name }
+                                        }))}
                                     />
                                 ))}
                             </div>
@@ -864,18 +864,6 @@ export default function ProjectDetail() {
                 );
             })()}
 
-            {chatWith && (
-                <ChatDock
-                    key={chatWith.token}
-                    base={`/projects/${id}/agency-links/${chatWith.token}/messages`}
-                    streamPath={`/agency/${chatWith.token}/stream`}
-                    side="team"
-                    title={chatWith.name}
-                    subtitle={project.name}
-                    openOnMount
-                    onClose={() => { setChatWith(null); loadChatUnread(); }}
-                />
-            )}
 
             {showAddSub && (
                 <AddSubmissionModal
