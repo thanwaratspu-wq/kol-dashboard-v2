@@ -30,6 +30,19 @@ const dayLabel = at => {
  *   title, subtitle
  *   onUnread(n) = แจ้งจำนวนที่ยังไม่ได้อ่านกลับไปให้หน้าแม่ (ไว้ทำป้ายตัวเลข)
  */
+// รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
+// จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
+function ChatImage({ src, name }) {
+    const [failed, setFailed] = useState(false);
+    return (
+        <a className="msgbox-img" href={src} target="_blank" rel="noreferrer" title={name}>
+            {failed
+                ? <span className="msgbox-imgfail">🖼 {name} — กดเพื่อเปิดรูป</span>
+                : <img src={src} alt={name} onError={() => setFailed(true)} />}
+        </a>
+    );
+}
+
 export default function MessageBox({ base, imageBase, streamPath, side, title, subtitle, onUnread }) {
     // แท็ก <img> แนบ Authorization header ไม่ได้ เส้นรูปจึงต้องเป็นเส้นที่ไม่ต้องล็อกอิน
     // ใช้เส้นของลิงก์เอเจนซี่ (กันด้วย token เหมือนช่อง SSE) — ฝั่งทีมก็รู้ token นี้อยู่แล้ว
@@ -133,9 +146,7 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                                 <span className="msgbox-who">{mine ? 'เรา' : m.by}</span>
                                 <div className="msgbox-bubble">
                                     {m.image && (
-                                        <a className="msgbox-img" href={`/api${imgBase}/${m.id}/image`} target="_blank" rel="noreferrer">
-                                            <img src={`/api${imgBase}/${m.id}/image`} alt={m.image.original} />
-                                        </a>
+                                        <ChatImage src={`/api${imgBase}/${m.id}/image`} name={m.image.original} />
                                     )}
                                     {m.text && <span className="msgbox-text">{m.text}</span>}
                                 </div>

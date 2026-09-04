@@ -2034,6 +2034,12 @@ a { text-decoration: none; color: inherit; }
 .msgbox-img { display: block; margin-bottom: 6px; }
 .msgbox-img:last-child { margin-bottom: 0; }
 .msgbox-img img { display: block; max-width: 240px; max-height: 240px; border-radius: 10px; }
+/* รูปโหลดไม่ขึ้น — ขึ้นชื่อไฟล์ที่กดเปิดได้แทนบับเบิลว่าง */
+.msgbox-imgfail {
+    display: inline-block; padding: 7px 10px; border-radius: 9px;
+    background: #fff; border: 1px dashed var(--border); color: var(--mint-dark);
+    font-size: 11.5px; font-weight: 600; text-decoration: none;
+}
 .msgbox-stamp { font-size: 10px; color: var(--muted); padding: 0 3px; font-variant-numeric: tabular-nums; }
 /* รูปที่เลือกไว้ แต่ยังไม่ได้กดส่ง */
 .msgbox-pending { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg-soft); font-size: 11.5px; font-weight: 600; color: var(--mint-dark); }
