@@ -208,6 +208,25 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
         }
     }
 
+    // ล้าง Budget ทั้งกลุ่ม — เผื่อกดหารเฉลี่ยผิด หรืออยากกลับไปกรอกทีละคน
+    // ทับของจริงบนเซิร์ฟเวอร์ด้วย เลยถามยืนยันก่อนเสมอ
+    async function clearBudget() {
+        const hasBudget = groupSubs.filter(x => (Number(x.budget) || 0) > 0);
+        const msg = hasBudget.length
+            ? `ล้าง Budget ของกลุ่มนี้?\nคนที่บันทึกไปแล้ว ${hasBudget.length} คน จะถูกตั้งเป็น 0 ด้วย`
+            : 'ล้าง Budget ที่กรอกค้างไว้ในกลุ่มนี้?';
+        if (!window.confirm(msg)) return;
+        setDivided(false);
+        try { localStorage.removeItem(divKey); } catch { /* ignore */ }
+        setRows(rs => rs.map(r => (r.saving ? r : { ...r, budget: '' })));
+        if (hasBudget.length) {
+            try {
+                await Promise.all(hasBudget.map(x => api(`/agency/${token}/submissions/${x.id}`, { method: 'PUT', body: { budget: 0 } })));
+                onReload();
+            } catch (e) { setErr(e.message); }
+        }
+    }
+
     async function saveRow(i) {
         const en = rows[i];
         if (!en.account_name.trim()) { setErr('กรุณากรอกชื่อ Account'); return; }
@@ -266,6 +285,11 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
                     <button type="button" className={'ag-divide-btn' + (divided ? ' on' : '')} onClick={divideBudget} disabled={perHead <= 0}
                         title="เหมาราคา: หารงบเท่าๆ กันทุกคน แล้วจำไว้ทั้งกลุ่ม (ทับ Budget ทุกคน + แถวใหม่เติมให้อัตโนมัติ)">
                         {divided ? `↻ ทับใหม่ (${fmtBaht(perHead)}/คน)` : `= หารเฉลี่ยเท่ากัน (${fmtBaht(perHead)}/คน)`}
+                    </button>
+                    <button type="button" className="ag-clear-btn" onClick={clearBudget}
+                        disabled={!divided && !groupSubs.some(x => (Number(x.budget) || 0) > 0) && !rows.some(r => r.budget)}
+                        title="ล้าง Budget ของทุกคนในกลุ่มนี้ กลับไปกรอกทีละคนเอง">
+                        ล้างงบ
                     </button>
                 </div>
             )}
