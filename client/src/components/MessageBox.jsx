@@ -20,35 +20,54 @@ const dayLabel = at => {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 };
 
-// ย่อรูปก่อนส่ง — รูปจากมือถือ/สกรีนช็อตมักหนักหลายเมกะไบต์
-// ทั้งขาอัปและขาที่อีกฝั่งโหลดมาดูจึงช้ามากเมื่อใช้ผ่าน Wi-Fi
-// ย่อด้านยาวสุดเหลือ 1600px พอสำหรับอ่านตัวเลขในภาพ Insights และเล็กลงหลายเท่า
-const MAX_EDGE = 1600;
-const SHRINK_OVER = 700 * 1024;   // เล็กกว่านี้ไม่ต้องยุ่ง เสียเวลาเปล่า
+// เตรียมรูปก่อนส่ง — รูปจากมือถือ/สกรีนช็อตมักหนักหลายเมกะไบต์
+// ทำ 2 ขนาด: รูปเต็ม (ไว้กดขยาย) กับรูปย่อ (ไว้โชว์ในแชท ซึ่งกว้างแค่ ~180px)
+// ในแชทจึงโหลดแค่ไม่กี่สิบ KB แทนที่จะเป็นหลายเมกะไบต์
+const MAX_EDGE = 1600;    // รูปเต็ม — พอสำหรับอ่านตัวเลขในภาพ Insights
+const THUMB_EDGE = 400;   // รูปย่อ — พอสำหรับช่องแชท
+const SHRINK_OVER = 700 * 1024;
 
-async function shrinkImage(file) {
-    if (!file || file.type === 'image/gif') return file;   // GIF ย่อแล้วภาพเคลื่อนไหวหาย
-    if (file.size <= SHRINK_OVER) return file;
+// WebP เล็กกว่า JPEG ราว 40% ที่คุณภาพเท่ากัน ถ้าเบราว์เซอร์ทำไม่ได้ค่อยถอยไป JPEG
+async function encode(bmp, maxEdge, quality) {
+    const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    let blob = await new Promise(r => canvas.toBlob(r, 'image/webp', quality));
+    if (!blob) blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+    return blob;
+}
+
+// คืน { full, thumb } — full อาจเป็นไฟล์เดิมถ้าเล็กอยู่แล้ว, thumb เป็น null ได้
+async function prepareImage(file) {
+    if (!file) return { full: file, thumb: null };
+    if (file.type === 'image/gif') return { full: file, thumb: null };   // ย่อแล้วภาพเคลื่อนไหวหาย
     try {
         const bmp = await createImageBitmap(file);
-        const scale = Math.min(1, MAX_EDGE / Math.max(bmp.width, bmp.height));
-        const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        const ext = b => (b.type === 'image/webp' ? '.webp' : '.jpg');
+        const named = (b, suffix) =>
+            new File([b], file.name.replace(/\.[^.]+$/, '') + suffix + ext(b), { type: b.type });
+
+        // รูปย่อ ทำเสมอ เพราะเป็นตัวที่ใช้โชว์ในแชท
+        const tb = await encode(bmp, THUMB_EDGE, 0.8);
+
+        // รูปเต็ม ย่อเฉพาะตอนไฟล์ใหญ่จริง ๆ ไม่งั้นใช้ของเดิม
+        let full = file;
+        if (file.size > SHRINK_OVER || Math.max(bmp.width, bmp.height) > MAX_EDGE) {
+            const fb = await encode(bmp, MAX_EDGE, 0.82);
+            if (fb && fb.size < file.size) full = named(fb, '');
+        }
         bmp.close();
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
-        if (!blob || blob.size >= file.size) return file;   // ย่อแล้วไม่เล็กลง ก็ส่งของเดิม
-        const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
-        return new File([blob], name, { type: 'image/jpeg' });
+        return { full, thumb: tb ? named(tb, '_thumb') : null };
     } catch {
-        return file;   // เบราว์เซอร์ย่อไม่ได้ ก็ส่งของเดิมไปตามปกติ
+        return { full: file, thumb: null };   // เบราว์เซอร์ทำไม่ได้ ก็ส่งของเดิมไปตามปกติ
     }
 }
 
 // รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
 // จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
-function ChatImage({ src, fallbackSrc, name, onOpen }) {
+function ChatImage({ src, fallbackSrc, fullSrc, name, onOpen }) {
     const [failed, setFailed] = useState(false);
     const [url, setUrl] = useState(src);
     useEffect(() => { setUrl(src); setFailed(false); }, [src]);
@@ -58,7 +77,7 @@ function ChatImage({ src, fallbackSrc, name, onOpen }) {
         else setFailed(true);
     };
     return (
-        <button type="button" className="msgbox-img" onClick={() => onOpen(fallbackSrc || url, name)} title={name}>
+        <button type="button" className="msgbox-img" onClick={() => onOpen(fullSrc || fallbackSrc || url, name)} title={name}>
             {failed
                 ? <span className="msgbox-imgfail">🖼 {name} — กดเพื่อเปิดรูป</span>
                 : <img src={url} alt={name} onError={onErr} />}
@@ -102,7 +121,8 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     const imgBase = imageBase || base;
     const [msgs, setMsgs] = useState([]);
     const [text, setText] = useState('');
-    const [img, setImg] = useState(null);
+    const [img, setImg] = useState(null);        // รูปเต็มที่จะส่ง
+    const [thumb, setThumb] = useState(null);    // รูปย่อคู่กัน (ไว้โชว์ในแชท)
     const [sending, setSending] = useState(false);
     const [preparing, setPreparing] = useState(false);   // กำลังย่อรูปที่เพิ่งเลือก
     const [err, setErr] = useState('');
@@ -167,13 +187,15 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     // ย่อรูปตั้งแต่ตอนเลือกไฟล์ ระหว่างที่ยังพิมพ์ข้อความอยู่
     // กดส่งจะได้ไม่ต้องรอย่อ (รูปใหญ่ ๆ ใช้เวลาย่อเป็นวินาที)
     async function pickImage(file) {
-        if (!file) { setImg(null); return; }
+        if (!file) { setImg(null); setThumb(null); return; }
         setImg(file);           // โชว์ชื่อไฟล์ให้เห็นทันที
+        setThumb(null);
         setPreparing(true);
         try {
-            const small = await shrinkImage(file);
-            // ถ้าระหว่างย่อผู้ใช้เปลี่ยนไฟล์หรือเอาออกไปแล้ว อย่าไปทับของใหม่
-            setImg(prev => (prev === file ? small : prev));
+            const { full, thumb: tb } = await prepareImage(file);
+            // ถ้าระหว่างเตรียมรูปผู้ใช้เปลี่ยนไฟล์หรือเอาออกไปแล้ว อย่าไปทับของใหม่
+            setImg(prev => (prev === file ? full : prev));
+            setThumb(tb);
         } finally { setPreparing(false); }
     }
 
@@ -184,18 +206,19 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
         try {
             if (img) {
                 const fd = new FormData();
-                fd.append('image', img);   // ย่อไปแล้วตั้งแต่ตอนเลือกไฟล์
+                fd.append('image', img);          // เตรียมไว้แล้วตั้งแต่ตอนเลือกไฟล์
+                if (thumb) fd.append('thumb', thumb);
                 if (text.trim()) fd.append('text', text.trim());
                 const res = await fetch(`/api${base}`, { method: 'POST', headers: authHeader(), body: fd });
                 const j = await res.json().catch(() => null);
                 if (!res.ok) throw new Error((j && j.message) || 'ส่งไม่สำเร็จ');
                 // คนส่งมีไฟล์อยู่ในเครื่องอยู่แล้ว ไม่ต้องรอโหลดกลับมาจาก server
                 // ให้แสดงจากไฟล์ในเครื่องเลย รูปจึงขึ้นทันทีที่บับเบิลขึ้น
-                if (j && j.data && j.data.id) localImgs.current.set(j.data.id, URL.createObjectURL(img));
+                if (j && j.data && j.data.id) localImgs.current.set(j.data.id, URL.createObjectURL(thumb || img));
             } else {
                 await api(base, { method: 'POST', body: { text: text.trim() } });
             }
-            setText(''); setImg(null);
+            setText(''); setImg(null); setThumb(null);
             if (fileRef.current) fileRef.current.value = '';
             stickBottom.current = true;
             await load(true);
@@ -225,8 +248,9 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                                 <div className="msgbox-bubble">
                                     {m.image && (
                                         <ChatImage
-                                            src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/image`}
-                                            fallbackSrc={`/api${imgBase}/${m.id}/image`}
+                                            src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/thumb`}
+                                            fallbackSrc={`/api${imgBase}/${m.id}/thumb`}
+                                            fullSrc={`/api${imgBase}/${m.id}/image`}
                                             name={m.image.original}
                                             onOpen={(src, name) => setZoomed({ src, name })} />
                                     )}

@@ -437,7 +437,7 @@ router.get('/:id/agency-links/:token/messages', async (req, res, next) => {
 
 router.post('/:id/agency-links/:token/messages', (req, res, next) => {
     if (!String(req.headers['content-type'] || '').startsWith('multipart/')) return next();
-    chatImage.single('image')(req, res, err => {
+    chatImage.fields([{ name: 'image', maxCount: 1 }, { name: 'thumb', maxCount: 1 }])(req, res, err => {
         if (err) return res.status(400).json({ status: 'error', message: err.message });
         next();
     });
@@ -446,13 +446,16 @@ router.post('/:id/agency-links/:token/messages', (req, res, next) => {
         const check = await canEditProject(req, req.params.id);
         if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
         const text = String(req.body.text || '').trim();
-        if (!text && !req.file) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
+        const full = req.files && req.files.image && req.files.image[0];
+        const thumb = req.files && req.files.thumb && req.files.thumb[0];
+        if (!text && !full) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
         const user = await store.users.findById(req.user.id);
         const row = await store.projects.addAgencyMessage(req.params.id, req.params.token, {
             from: 'team',
             by: user ? (user.full_name || user.username) : 'ทีม',
             text,
-            image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
+            image: full ? { filename: full.filename, original: full.originalname, size: full.size } : null,
+            thumb: thumb ? { filename: thumb.filename, original: thumb.originalname, size: thumb.size } : null
         });
         if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
         chatHub.broadcast(req.params.token);
@@ -469,11 +472,11 @@ router.post('/:id/agency-links/:token/messages/read', async (req, res, next) => 
     } catch (err) { next(err); }
 });
 
-router.get('/:id/agency-links/:token/messages/:msgId/image', async (req, res, next) => {
+router.get('/:id/agency-links/:token/messages/:msgId/:which(image|thumb)', async (req, res, next) => {
     try {
         const check = await canEditProject(req, req.params.id);
         if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
-        const img = await store.projects.getAgencyMessageImage(req.params.id, req.params.token, req.params.msgId);
+        const img = await store.projects.getAgencyMessageImage(req.params.id, req.params.token, req.params.msgId, req.params.which);
         if (!img) return res.status(404).json({ status: 'error', message: 'ไม่พบรูป' });
         const fp = path.join(__dirname, '..', '..', 'uploads', img.filename);
         if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });

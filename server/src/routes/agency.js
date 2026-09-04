@@ -328,7 +328,7 @@ router.get('/:token/messages', async (req, res, next) => {
 // POST /api/agency/:token/messages — ข้อความ (+ รูป 1 ใบ)
 router.post('/:token/messages', (req, res, next) => {
     if (!String(req.headers['content-type'] || '').startsWith('multipart/')) return next();
-    chatImage.single('image')(req, res, err => {
+    chatImage.fields([{ name: 'image', maxCount: 1 }, { name: 'thumb', maxCount: 1 }])(req, res, err => {
         if (err) return res.status(400).json({ status: 'error', message: err.message });
         next();
     });
@@ -337,12 +337,15 @@ router.post('/:token/messages', (req, res, next) => {
         const r = await store.projects.resolveToken(req.params.token);
         if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
         const text = String(req.body.text || '').trim();
-        if (!text && !req.file) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
+        const full = req.files && req.files.image && req.files.image[0];
+        const thumb = req.files && req.files.thumb && req.files.thumb[0];
+        if (!text && !full) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
         const row = await store.projects.addAgencyMessage(r.project.id, req.params.token, {
             from: 'agency',
             by: r.link.name || 'เอเจนซี่',
             text,
-            image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
+            image: full ? { filename: full.filename, original: full.originalname, size: full.size } : null,
+            thumb: thumb ? { filename: thumb.filename, original: thumb.originalname, size: thumb.size } : null
         });
         if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
         chatHub.broadcast(req.params.token);   // เด้งให้ทุกคนที่เปิดห้องอยู่รู้ทันที
@@ -361,14 +364,18 @@ router.post('/:token/messages/read', async (req, res, next) => {
 });
 
 // GET /api/agency/:token/messages/:msgId/image
-router.get('/:token/messages/:msgId/image', async (req, res, next) => {
+// :which = image (รูปเต็ม ตอนกดขยาย) | thumb (รูปย่อ ที่โชว์ในแชท)
+router.get('/:token/messages/:msgId/:which(image|thumb)', async (req, res, next) => {
     try {
         const r = await store.projects.resolveToken(req.params.token);
         if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
-        const img = await store.projects.getAgencyMessageImage(r.project.id, req.params.token, req.params.msgId);
+        const img = await store.projects.getAgencyMessageImage(r.project.id, req.params.token, req.params.msgId, req.params.which);
         if (!img) return res.status(404).json({ status: 'error', message: 'ไม่พบรูป' });
         const fp = path.join(UPLOAD_DIR, img.filename);
         if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        // รูปในข้อความไม่มีวันเปลี่ยน (URL ผูกกับ id ข้อความ) เก็บ cache ยาวไปเลย
+        // เปิดแชทซ้ำจะได้ไม่ต้องวิ่งถาม server ใหม่ทุกรูป
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
         res.sendFile(fp);
     } catch (err) { next(err); }
 });

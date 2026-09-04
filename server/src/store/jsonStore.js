@@ -533,12 +533,16 @@ const projects = {
         return true;
     },
     // ไฟล์รูปในข้อความ — หาโดยไม่ต้องรู้ว่าอยู่ข้อความไหน
-    async getAgencyMessageImage(id, token, msgId) {
+    // which = 'image' (รูปเต็ม) หรือ 'thumb' (รูปย่อที่ใช้โชว์ในแชท)
+    // ข้อความเก่าไม่มี thumb ให้ถอยไปใช้รูปเต็มแทน
+    async getAgencyMessageImage(id, token, msgId, which = 'image') {
         const p = db.projects.find(p => p.id === Number(id));
         if (!p) return null;
         const link = (p.agency_links || []).find(l => l.token === token);
         const m = link && (link.messages || []).find(x => x.id === msgId);
-        return m && m.image ? clone(m.image) : null;
+        if (!m) return null;
+        const pick = which === 'thumb' ? (m.thumb || m.image) : m.image;
+        return pick ? clone(pick) : null;
     },
     // ---------- ไฟล์/ลิงก์ Report ที่เอเจนซี่ส่งเข้ามา (เก็บผูกกับลิงก์ของแต่ละเจ้า) ----------
     // meta = { kind: "file"|"link", original, filename?, size?, url?, note?, uploaded_at }
