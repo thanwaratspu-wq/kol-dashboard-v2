@@ -388,6 +388,13 @@ export default function ProjectDetail() {
         try { await api(`/projects/${id}/submissions/${subId}`, { method: 'PUT', body: { status } }); loadSubs(); }
         catch (err) { alert(err.message); }
     }
+    // ลบรายชื่อออกถาวร — "ยกเลิก/ไม่เลือก" แค่เปลี่ยนสถานะ แถวยังอยู่ในระบบและยังไปโผล่ที่อื่น
+    async function deleteSub(s) {
+        if (!confirm(`ลบ "${s.account_name}" ออกจากแคมเปญนี้ถาวร?
+ลบแล้วกู้คืนไม่ได้ และจะหายจาก Dashboard / Report ด้วย`)) return;
+        try { await api(`/projects/${id}/submissions/${s.id}`, { method: 'DELETE' }); loadSubs(); }
+        catch (err) { alert(err.message); }
+    }
     // อัปเดต submission (ใช้กับ On Process — บันทึกโพสต์/ดราฟ/feedback ฝั่งทีม)
     const putSubmission = (subId, payload) => api(`/projects/${id}/submissions/${subId}`, { method: 'PUT', body: payload });
 
@@ -445,6 +452,9 @@ export default function ProjectDetail() {
                         <button className="btn-reject" onClick={() => decideSub(s.id, 'rejected')}>✕ ไม่เลือก</button>
                     </div>
                 )}
+                <button className="sub-del" title="ลบรายชื่อนี้ออกจากแคมเปญถาวร" onClick={() => deleteSub(s)}>
+                    <Icon name="trash" size={14} />
+                </button>
             </td>
             <td className="tbl-spacer"></td>
         </tr>

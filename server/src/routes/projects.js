@@ -394,6 +394,18 @@ router.put('/:id/submissions/:subId', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// DELETE /api/projects/:id/submissions/:subId — ลบรายชื่อออกจากแคมเปญถาวร
+router.delete('/:id/submissions/:subId', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const gone = await store.submissions.remove(req.params.subId, req.params.id);
+        if (!gone) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
+        await record(req, req.params.id, 'remove_kol', `ลบรายชื่อออกจากแคมเปญ: ${gone.account_name}`);
+        res.json({ status: 'success', message: 'ลบรายชื่อออกจากแคมเปญแล้ว' });
+    } catch (err) { next(err); }
+});
+
 // POST /api/projects/:id/submissions/:subId/fetch-tiktok — ดึงสถิติวิดีโอจาก TikTok API (ถ้าตั้งค่าไว้)
 router.post('/:id/submissions/:subId/fetch-tiktok', async (req, res, next) => {
     try {

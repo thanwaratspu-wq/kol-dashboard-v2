@@ -1181,6 +1181,13 @@ const submissions = {
     },
     async countPending(projectId) {
         return db.submissions.filter(s => s.project_id === Number(projectId) && s.status === 'submitted').length;
+    },
+    // ลบทิ้งถาวร — ใช้ตอนเอารายชื่อออกจากแคมเปญ (ยกเลิก/ไม่เลือก แค่เปลี่ยนสถานะ แถวยังอยู่)
+    async remove(subId, projectId) {
+        const idx = db.submissions.findIndex(s => s.id === Number(subId) && s.project_id === Number(projectId));
+        if (idx === -1) return null;
+        const [gone] = db.submissions.splice(idx, 1); persist();
+        return clone(gone);
     }
 };
 

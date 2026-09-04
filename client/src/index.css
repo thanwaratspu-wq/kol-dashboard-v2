@@ -836,7 +836,7 @@ a { text-decoration: none; color: inherit; }
 .panel.grp-rejected .data-table tbody tr { opacity: .72; }
 
 /* ปุ่มเลือก/ไม่เลือก (ฝั่งทีม) */
-.sub-decide { display: flex; gap: 7px; justify-content: flex-end; }
+.sub-decide { display: inline-flex; gap: 7px; justify-content: flex-end; vertical-align: middle; }
 .btn-reject {
     padding: 6px 12px; border: 1px solid #fecaca; background: #fff5f5; color: #dc2626;
     font-weight: 700; font-size: 12.5px; border-radius: 9px; cursor: pointer; white-space: nowrap;
@@ -2219,3 +2219,8 @@ a { text-decoration: none; color: inherit; }
 }
 .lightbox-x:hover { background: rgba(255, 255, 255, .3); }
 .lightbox-x:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ปุ่มลบรายชื่อออกจากแคมเปญ (อยู่ท้ายคอลัมน์จัดการ) */
+.data-table td.actions { white-space: nowrap; }
+.sub-del { margin-inline-start: 6px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; display: inline-grid; place-items: center; vertical-align: middle; }
+.sub-del:hover { border-color: #f0a3a3; color: #d64545; background: #fff5f5; }
