@@ -18,6 +18,18 @@ function fmtD(d) {
 const GOOD_CPM = 28;
 const GOOD_CPE = 1.5;
 
+// วันที่ Gencode เหลือ — ทำสีเตือนให้เห็นว่าใครใกล้หมดแล้ว
+//   ต่ำกว่า 10 วัน = แดง | 10-20 วัน = เหลือง | 21 วันขึ้นไป = เขียว
+function DayLeft({ days }) {
+    if (days == null) return <span className="muted">—</span>;
+    if (days < 0) return <span className="dayleft over">หมดอายุแล้ว</span>;
+    const level = days < 10 ? 'red' : days <= 20 ? 'amber' : 'green';
+    const why = days < 10 ? 'เหลือน้อยกว่า 10 วัน — ต้องรีบแล้ว'
+        : days <= 20 ? 'เหลือ 10-20 วัน — เริ่มต้องตาม'
+            : 'เหลือมากกว่า 20 วัน — ยังมีเวลา';
+    return <span className={'dayleft ' + level} title={why}>{days} Days</span>;
+}
+
 // ป้ายบอกว่า KOL คนนี้คุ้มค่าไหม — เขียว = ผ่านทั้ง CPM และ CPE, แดง = มีตัวใดตัวหนึ่งเกินเกณฑ์
 // ยังไม่กรอกผลงานคอนเทนต์ = ยังตัดสินไม่ได้ ขึ้นเป็นสีเทา (ไม่ใช่ "ไม่ผ่าน")
 function PerfBadge({ row }) {
@@ -283,7 +295,7 @@ export default function Kols() {
                                     <td>{fmtD(r.post_date)}</td>
                                     <td>{fmtD(r.gen_date)}</td>
                                     <td>{r.days ? `${r.days} Days` : '—'}</td>
-                                    <td>{r.day_left == null ? '—' : r.day_left < 0 ? <span className="ka-expired">Expired</span> : `${r.day_left} Days`}</td>
+                                    <td><DayLeft days={r.day_left} /></td>
                                     <td>{r.post_url ? <a href={r.post_url} target="_blank" rel="noreferrer" className="ka-view">View</a> : '#'}</td>
                                     <CopyCell value={r.gencode} />
                                     <CopyCell value={r.id_post} />
