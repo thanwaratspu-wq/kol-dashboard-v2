@@ -282,15 +282,18 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
                         💰 Budget กลุ่มนี้ <b>{fmtBaht(groupBudget)}</b> · ต้องการ {total} คน
                         {divided && <span className="ag-divided-tag">✓ หารเฉลี่ยแล้ว {fmtBaht(perHead)}/คน (แถวใหม่เติมอัตโนมัติ)</span>}
                     </span>
-                    <button type="button" className={'ag-divide-btn' + (divided ? ' on' : '')} onClick={divideBudget} disabled={perHead <= 0}
-                        title="เหมาราคา: หารงบเท่าๆ กันทุกคน แล้วจำไว้ทั้งกลุ่ม (ทับ Budget ทุกคน + แถวใหม่เติมให้อัตโนมัติ)">
-                        {divided ? `↻ ทับใหม่ (${fmtBaht(perHead)}/คน)` : `= หารเฉลี่ยเท่ากัน (${fmtBaht(perHead)}/คน)`}
-                    </button>
-                    <button type="button" className="ag-clear-btn" onClick={clearBudget}
-                        disabled={!divided && !groupSubs.some(x => (Number(x.budget) || 0) > 0) && !rows.some(r => r.budget)}
-                        title="ล้าง Budget ของทุกคนในกลุ่มนี้ กลับไปกรอกทีละคนเอง">
-                        ล้างงบ
-                    </button>
+                    {/* จับสองปุ่มเป็นกลุ่มเดียว จะได้เกาะกันชิดขวาเสมอ แม้ตอนข้อความยาวจนตกบรรทัด */}
+                    <div className="ag-budget-actions">
+                        <button type="button" className={'ag-divide-btn' + (divided ? ' on' : '')} onClick={divideBudget} disabled={perHead <= 0}
+                            title="เหมาราคา: หารงบเท่าๆ กันทุกคน แล้วจำไว้ทั้งกลุ่ม (ทับ Budget ทุกคน + แถวใหม่เติมให้อัตโนมัติ)">
+                            {divided ? `↻ ทับใหม่ (${fmtBaht(perHead)}/คน)` : `= หารเฉลี่ยเท่ากัน (${fmtBaht(perHead)}/คน)`}
+                        </button>
+                        <button type="button" className="ag-clear-btn" onClick={clearBudget}
+                            disabled={!divided && !groupSubs.some(x => (Number(x.budget) || 0) > 0) && !rows.some(r => r.budget)}
+                            title="ล้าง Budget ของทุกคนในกลุ่มนี้ กลับไปกรอกทีละคนเอง">
+                            ล้างงบ
+                        </button>
+                    </div>
                 </div>
             )}
             <div className="ag-add-scroll">
