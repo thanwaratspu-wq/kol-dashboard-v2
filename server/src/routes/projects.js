@@ -484,4 +484,36 @@ router.get('/:id/agency-links/:token/messages/:msgId/:which(image|thumb)', async
     } catch (err) { next(err); }
 });
 
+// PATCH / DELETE ข้อความแชทของทีมเอง
+router.patch('/:id/agency-links/:token/messages/:msgId', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const text = String(req.body.text || '').trim();
+        if (!text) return res.status(400).json({ status: 'error', message: 'ข้อความว่างไม่ได้ — ถ้าจะเอาออกให้กดลบแทน' });
+        const out = await store.projects.editAgencyMessage(req.params.id, req.params.token, req.params.msgId, 'team', text);
+        if (out.error === 404) return res.status(404).json({ status: 'error', message: 'ไม่พบข้อความ' });
+        if (out.error === 403) return res.status(403).json({ status: 'error', message: 'แก้ได้เฉพาะข้อความของตัวเอง' });
+        if (out.error === 410) return res.status(410).json({ status: 'error', message: 'ข้อความนี้ถูกลบไปแล้ว' });
+        chatHub.broadcast(req.params.token);
+        res.json({ status: 'success', data: out.data });
+    } catch (err) { next(err); }
+});
+
+router.delete('/:id/agency-links/:token/messages/:msgId', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const out = await store.projects.deleteAgencyMessage(req.params.id, req.params.token, req.params.msgId, 'team');
+        if (out.error === 404) return res.status(404).json({ status: 'error', message: 'ไม่พบข้อความ' });
+        if (out.error === 403) return res.status(403).json({ status: 'error', message: 'ลบได้เฉพาะข้อความของตัวเอง' });
+        (out.files || []).forEach(f => {
+            const fp = path.join(__dirname, '..', '..', 'uploads', f);
+            try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch { /* ลบไฟล์ไม่ได้ก็ปล่อย */ }
+        });
+        chatHub.broadcast(req.params.token);
+        res.json({ status: 'success', data: out.data });
+    } catch (err) { next(err); }
+});
+
 module.exports = router;

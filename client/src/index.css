@@ -2041,6 +2041,33 @@ a { text-decoration: none; color: inherit; }
     font-size: 11.5px; font-weight: 600; text-decoration: none;
 }
 .msgbox-stamp { font-size: 10px; color: var(--muted); padding: 0 3px; font-variant-numeric: tabular-nums; }
+.msgbox-edited { color: var(--muted); font-style: italic; }
+/* ข้อความที่ถูกลบ — เหลือแค่ร่องรอย */
+.msgbox-bubble.gone { background: transparent; border-style: dashed; color: var(--muted); font-style: italic; font-size: 12px; }
+.msgbox-msg.mine .msgbox-bubble.gone { background: transparent; border-color: var(--border); color: var(--muted); }
+/* ปุ่มแก้/ลบ — โผล่ตอนเอาเมาส์ชี้ หรือตอนโฟกัสด้วยคีย์บอร์ด */
+.msgbox-row { display: flex; align-items: center; gap: 4px; }
+.msgbox-msg.mine .msgbox-row { flex-direction: row; }
+.msgbox-tools { display: flex; gap: 2px; opacity: 0; transition: opacity .12s; flex-shrink: 0; }
+.msgbox-row:hover .msgbox-tools, .msgbox-tools:focus-within { opacity: 1; }
+.msgbox-tools button {
+    width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 7px;
+    background: #fff; font-size: 10px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+}
+.msgbox-tools button:hover { border-color: var(--mint); background: var(--bg-soft); }
+/* ช่องแก้ข้อความในบับเบิล */
+.msgbox-editform { display: flex; gap: 4px; align-items: center; }
+.msgbox-editform input {
+    flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--mint); border-radius: 12px;
+    background: #fff; font: inherit; font-size: 12.5px; color: var(--text);
+}
+.msgbox-editform input:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
+.msgbox-editform button {
+    flex-shrink: 0; width: 26px; height: 26px; padding: 0; border: 1px solid var(--border);
+    border-radius: 8px; background: #fff; font-size: 11px; cursor: pointer;
+}
+.msgbox-editform button[type="submit"] { border-color: var(--mint); color: var(--mint-dark); }
+.msgbox-editform button:hover { background: var(--bg-soft); }
 /* รูปที่เลือกไว้ แต่ยังไม่ได้กดส่ง */
 .msgbox-pending { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg-soft); font-size: 11.5px; font-weight: 600; color: var(--mint-dark); }
 .msgbox-pending button { margin-inline-start: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px; }

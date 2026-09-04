@@ -390,4 +390,37 @@ router.get('/:token/stream', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// PATCH /api/agency/:token/messages/:msgId — แก้ข้อความของตัวเอง
+router.patch('/:token/messages/:msgId', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const text = String(req.body.text || '').trim();
+        if (!text) return res.status(400).json({ status: 'error', message: 'ข้อความว่างไม่ได้ — ถ้าจะเอาออกให้กดลบแทน' });
+        const out = await store.projects.editAgencyMessage(r.project.id, req.params.token, req.params.msgId, 'agency', text);
+        if (out.error === 404) return res.status(404).json({ status: 'error', message: 'ไม่พบข้อความ' });
+        if (out.error === 403) return res.status(403).json({ status: 'error', message: 'แก้ได้เฉพาะข้อความของตัวเอง' });
+        if (out.error === 410) return res.status(410).json({ status: 'error', message: 'ข้อความนี้ถูกลบไปแล้ว' });
+        chatHub.broadcast(req.params.token);
+        res.json({ status: 'success', data: out.data });
+    } catch (err) { next(err); }
+});
+
+// DELETE /api/agency/:token/messages/:msgId — ลบข้อความของตัวเอง
+router.delete('/:token/messages/:msgId', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const out = await store.projects.deleteAgencyMessage(r.project.id, req.params.token, req.params.msgId, 'agency');
+        if (out.error === 404) return res.status(404).json({ status: 'error', message: 'ไม่พบข้อความ' });
+        if (out.error === 403) return res.status(403).json({ status: 'error', message: 'ลบได้เฉพาะข้อความของตัวเอง' });
+        (out.files || []).forEach(f => {
+            const fp = path.join(UPLOAD_DIR, f);
+            try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch { /* ลบไฟล์ไม่ได้ก็ปล่อย ข้อมูลถูกลบไปแล้ว */ }
+        });
+        chatHub.broadcast(req.params.token);
+        res.json({ status: 'success', data: out.data });
+    } catch (err) { next(err); }
+});
+
 module.exports = router;

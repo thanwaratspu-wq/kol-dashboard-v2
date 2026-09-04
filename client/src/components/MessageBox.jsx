@@ -130,6 +130,8 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     const threadRef = useRef(null);
     const stickBottom = useRef(true);
     const loadRef = useRef(null);
+    const [editing, setEditing] = useState(null);   // id ข้อความที่กำลังแก้อยู่
+    const [editText, setEditText] = useState('');
     const [zoomed, setZoomed] = useState(null);   // รูปที่กำลังเปิดขยายอยู่ { src, name }
     const localImgs = useRef(new Map());   // msgId -> object URL ของไฟล์ในเครื่อง (รูปที่เราเพิ่งส่ง)
 
@@ -199,6 +201,31 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
         } finally { setPreparing(false); }
     }
 
+    function startEdit(m) { setEditing(m.id); setEditText(m.text || ''); }
+    function cancelEdit() { setEditing(null); setEditText(''); }
+
+    async function saveEdit(msgId) {
+        const t = editText.trim();
+        if (!t) return;
+        setErr('');
+        try {
+            await api(`${base}/${msgId}`, { method: 'PATCH', body: { text: t } });
+            cancelEdit();
+            await load(false);
+        } catch (e) { setErr(e.message); }
+    }
+
+    async function removeMsg(m) {
+        // ลบแล้วกู้ไม่ได้ ถามก่อนเสมอ
+        const what = m.text ? `"${m.text.slice(0, 40)}${m.text.length > 40 ? '…' : ''}"` : 'รูปนี้';
+        if (!window.confirm(`ลบ ${what} ออกจากแชท?\nอีกฝั่งจะเห็นว่า "ลบข้อความนี้แล้ว"`)) return;
+        setErr('');
+        try {
+            await api(`${base}/${m.id}`, { method: 'DELETE' });
+            await load(false);
+        } catch (e) { setErr(e.message); }
+    }
+
     async function send(e) {
         e.preventDefault();
         if (!text.trim() && !img) return;
@@ -245,18 +272,46 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                             {newDay && <div className="msgbox-day"><span>{dayLabel(m.at)}</span></div>}
                             <div className={'msgbox-msg' + (mine ? ' mine' : '')}>
                                 <span className="msgbox-who">{mine ? 'เรา' : m.by}</span>
-                                <div className="msgbox-bubble">
-                                    {m.image && (
-                                        <ChatImage
-                                            src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/thumb`}
-                                            fallbackSrc={`/api${imgBase}/${m.id}/thumb`}
-                                            fullSrc={`/api${imgBase}/${m.id}/image`}
-                                            name={m.image.original}
-                                            onOpen={(src, name) => setZoomed({ src, name })} />
-                                    )}
-                                    {m.text && <span className="msgbox-text">{m.text}</span>}
-                                </div>
-                                <span className="msgbox-stamp">{hhmm(m.at)}</span>
+
+                                {m.deleted_at ? (
+                                    <div className="msgbox-bubble gone">ลบข้อความนี้แล้ว</div>
+                                ) : editing === m.id ? (
+                                    <form className="msgbox-editform" onSubmit={e => { e.preventDefault(); saveEdit(m.id); }}>
+                                        <input value={editText} onChange={e => setEditText(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Escape') cancelEdit(); }}
+                                            aria-label="แก้ข้อความ" autoFocus />
+                                        <button type="submit" title="บันทึก">✓</button>
+                                        <button type="button" onClick={cancelEdit} title="ยกเลิก">✕</button>
+                                    </form>
+                                ) : (
+                                    <div className="msgbox-row">
+                                        {/* ปุ่มแก้/ลบ ขึ้นเฉพาะข้อความของเราเอง */}
+                                        {mine && (
+                                            <span className="msgbox-tools">
+                                                {m.text && (
+                                                    <button type="button" onClick={() => startEdit(m)} title="แก้ข้อความ">✏️</button>
+                                                )}
+                                                <button type="button" onClick={() => removeMsg(m)} title="ลบข้อความ">🗑</button>
+                                            </span>
+                                        )}
+                                        <div className="msgbox-bubble">
+                                            {m.image && (
+                                                <ChatImage
+                                                    src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/thumb`}
+                                                    fallbackSrc={`/api${imgBase}/${m.id}/thumb`}
+                                                    fullSrc={`/api${imgBase}/${m.id}/image`}
+                                                    name={m.image.original}
+                                                    onOpen={(src, name) => setZoomed({ src, name })} />
+                                            )}
+                                            {m.text && <span className="msgbox-text">{m.text}</span>}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <span className="msgbox-stamp">
+                                    {hhmm(m.at)}
+                                    {m.edited_at && !m.deleted_at && <span className="msgbox-edited"> · แก้ไขแล้ว</span>}
+                                </span>
                             </div>
                         </div>
                     );

@@ -511,6 +511,44 @@ const projects = {
         persist();
         return clone(row);
     },
+    // หาข้อความ 1 อัน พร้อมลิงก์ที่มันสังกัด (ใช้ร่วมกันตอนแก้/ลบ)
+    _findMessage(id, token, msgId) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link) return null;
+        const m = (link.messages || []).find(x => x.id === msgId);
+        return m ? { link, m } : null;
+    },
+
+    // แก้ข้อความ — ได้เฉพาะข้อความของฝั่งตัวเอง และที่ยังไม่ถูกลบ
+    async editAgencyMessage(id, token, msgId, side, text) {
+        const found = this._findMessage(id, token, msgId);
+        if (!found) return { error: 404 };
+        const { m } = found;
+        if (m.from !== side) return { error: 403 };
+        if (m.deleted_at) return { error: 410 };
+        m.text = text;
+        m.edited_at = now();
+        persist();
+        return { data: clone(m) };
+    },
+
+    // ลบข้อความ — เก็บร่องรอยไว้ว่าเคยมีข้อความตรงนี้ แต่เนื้อหาและรูปหายไป
+    // (ทำแบบเดียวกับไลน์ เพราะแชทนี้ใช้อ้างอิงตอนตกลงงานกัน ลบหายทั้งดุ้นจะดูย้อนไม่ได้ว่าเคยคุยอะไร)
+    async deleteAgencyMessage(id, token, msgId, side) {
+        const found = this._findMessage(id, token, msgId);
+        if (!found) return { error: 404 };
+        const { m } = found;
+        if (m.from !== side) return { error: 403 };
+        const files = [m.image, m.thumb].filter(Boolean).map(f => f.filename);
+        m.text = '';
+        m.image = null;
+        m.thumb = null;
+        m.deleted_at = now();
+        persist();
+        return { data: clone(m), files };   // ผู้เรียกเอา files ไปลบไฟล์จริงต่อ
+    },
     async listAgencyMessages(id, token) {
         const p = db.projects.find(p => p.id === Number(id));
         if (!p) return null;
