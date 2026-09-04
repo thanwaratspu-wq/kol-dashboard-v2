@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { api, getToken } from '../api/client.js';
 
-const POLL_MS = 30000;   // ไม่มี push จริง เลยถามซ้ำทุก 30 วิ ระหว่างที่เปิดห้องอยู่
+// ปกติข้อความใหม่จะเด้งมาทาง SSE ทันที
+// รอบถามซ้ำนี้เป็นตาข่ายรองกรณีสายหลุดหรือเบราว์เซอร์ไม่รองรับ จึงตั้งห่าง ๆ พอ
+const POLL_MS = 60000;
 
 const hhmm = at => {
     const d = new Date(at);
@@ -23,10 +25,11 @@ const dayLabel = at => {
  *   base   = path ตั้งต้นของ API เช่น `/agency/${token}/messages`
  *            หรือ `/projects/${id}/agency-links/${token}/messages`
  *   side   = 'team' | 'agency'  — ใช้ตัดสินว่าข้อความไหนเป็นของเรา
+ *   streamPath = ช่อง SSE ที่ใช้ฟังว่ามีข้อความใหม่ เช่น `/agency/${token}/stream`
  *   title, subtitle
  *   onUnread(n) = แจ้งจำนวนที่ยังไม่ได้อ่านกลับไปให้หน้าแม่ (ไว้ทำป้ายตัวเลข)
  */
-export default function MessageBox({ base, side, title, subtitle, onUnread }) {
+export default function MessageBox({ base, streamPath, side, title, subtitle, onUnread }) {
     const [msgs, setMsgs] = useState([]);
     const [text, setText] = useState('');
     const [img, setImg] = useState(null);
@@ -35,6 +38,7 @@ export default function MessageBox({ base, side, title, subtitle, onUnread }) {
     const fileRef = useRef(null);
     const threadRef = useRef(null);
     const stickBottom = useRef(true);
+    const loadRef = useRef(null);
 
     const load = useCallback(async (markRead) => {
         try {
@@ -47,12 +51,27 @@ export default function MessageBox({ base, side, title, subtitle, onUnread }) {
         } catch (e) { setErr(e.message); }
     }, [base, onUnread]);
 
-    // เปิดห้อง = อ่านแล้ว จากนั้นถามซ้ำเรื่อย ๆ
+    // เปิดห้อง = อ่านแล้ว
     useEffect(() => {
         load(true);
-        const t = setInterval(() => load(false), POLL_MS);
+        const t = setInterval(() => load(false), POLL_MS);   // ตาข่ายรอง
         return () => clearInterval(t);
     }, [load]);
+
+    useEffect(() => { loadRef.current = load; }, [load]);
+
+    // ฟังสัญญาณ "มีข้อความใหม่" จาก server แล้วดึงทันที — ไม่ต้องรอรอบถาม
+    // ผูก effect กับ streamPath อย่างเดียว ไม่เอา load มาเป็น dependency
+    // ไม่งั้นทุกครั้งที่หน้าแม่ re-render สายจะถูกปิดแล้วเปิดใหม่ และช่วงที่ปิดอยู่ข้อความจะหลุด
+    useEffect(() => {
+        if (!streamPath || typeof EventSource === 'undefined') return;
+        const es = new EventSource(`/api${streamPath}`);
+        es.addEventListener('message', () => loadRef.current && loadRef.current(true));
+        // ต่อสายใหม่ทุกครั้ง (รวมตอนหลุดแล้ว EventSource ต่อเอง) ให้ดึงซ่อมด้วย
+        // เผื่อมีข้อความเข้ามาระหว่างที่สายขาด
+        es.addEventListener('open', () => loadRef.current && loadRef.current(false));
+        return () => es.close();
+    }, [streamPath]);
 
     // เลื่อนลงล่างสุดเมื่อมีข้อความใหม่ — แต่ไม่แย่งถ้าคนกำลังอ่านย้อนอยู่
     useEffect(() => {

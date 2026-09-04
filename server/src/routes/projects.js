@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const chatHub = require('../services/chatHub');
 const store = require('../store');
 const tiktok = require('../services/tiktok');
 const { authenticate } = require('../middleware/auth');
@@ -446,6 +447,7 @@ router.post('/:id/agency-links/:token/messages', (req, res, next) => {
             image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
         });
         if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        chatHub.broadcast(req.params.token);
         res.status(201).json({ status: 'success', data: row });
     } catch (err) { next(err); }
 });

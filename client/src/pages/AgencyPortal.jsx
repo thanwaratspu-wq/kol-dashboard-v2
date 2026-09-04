@@ -631,6 +631,7 @@ export default function AgencyPortal() {
 
             <MessageBox
                 base={`/agency/${token}/messages`}
+                streamPath={`/agency/${token}/stream`}
                 side="agency"
                 title="💬 คุยกับทีม"
                 subtitle={info.project_name}

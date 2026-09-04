@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const store = require('../store');
 const multer = require('multer');
+const chatHub = require('../services/chatHub');
 
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 const router = express.Router();
@@ -344,6 +345,7 @@ router.post('/:token/messages', (req, res, next) => {
             image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
         });
         if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        chatHub.broadcast(req.params.token);   // เด้งให้ทุกคนที่เปิดห้องอยู่รู้ทันที
         res.status(201).json({ status: 'success', data: row });
     } catch (err) { next(err); }
 });
@@ -368,6 +370,16 @@ router.get('/:token/messages/:msgId/image', async (req, res, next) => {
         const fp = path.join(UPLOAD_DIR, img.filename);
         if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
         res.sendFile(fp);
+    } catch (err) { next(err); }
+});
+
+// GET /api/agency/:token/stream — ช่องแจ้งว่ามีข้อความใหม่ (ใช้ร่วมกันทั้งทีมและเอเจนซี่)
+// ส่งแค่สัญญาณ ไม่มีเนื้อข้อความ ระดับความลับจึงเท่ากับตัวลิงก์เอเจนซี่เอง
+router.get('/:token/stream', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        chatHub.subscribe(req.params.token, req, res);
     } catch (err) { next(err); }
 });
 

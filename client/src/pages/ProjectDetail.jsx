@@ -872,6 +872,7 @@ export default function ProjectDetail() {
                         </div>
                         <MessageBox
                             base={`/projects/${id}/agency-links/${chatWith.token}/messages`}
+                            streamPath={`/agency/${chatWith.token}/stream`}
                             side="team"
                             title={chatWith.name}
                             subtitle={project.name}
