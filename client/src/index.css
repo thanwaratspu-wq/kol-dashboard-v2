@@ -2128,7 +2128,6 @@ a { text-decoration: none; color: inherit; }
     background: var(--danger); color: #fff; font-size: 10.5px; font-weight: 800;
     display: grid; place-items: center; font-variant-numeric: tabular-nums;
 }
-.chatdock-room-proj { font-size: 10.5px; font-weight: 600; color: var(--mint-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chatdock-room-last { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* จอแคบ: ให้กล่องกินเกือบเต็มความกว้าง แต่ยังลอยอยู่ล่าง */

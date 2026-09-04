@@ -7,6 +7,7 @@ import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
 import { unreadCount } from '../components/MessageBox.jsx';
+import ChatDock from '../components/ChatDock.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
@@ -864,6 +865,9 @@ export default function ProjectDetail() {
                 );
             })()}
 
+
+            {/* กล่องแชทลอย — มีเฉพาะหน้าแคมเปญ แสดงเอเจนซี่ของแคมเปญนี้ */}
+            <ChatDock mode="list" projectId={id} />
 
             {showAddSub && (
                 <AddSubmissionModal

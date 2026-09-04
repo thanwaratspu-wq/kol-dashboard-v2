@@ -19,9 +19,9 @@ const shortWhen = at => {
  *
  * ใช้ได้ 2 แบบ:
  *   1) ห้องเดียว — ส่ง base/streamPath/side/title มา (หน้าเอเจนซี่ หรือกดจากรายชื่อในหน้าแคมเปญ)
- *   2) รายการห้อง — ส่ง mode="list" (ฝั่งทีม ใช้ได้ทุกหน้า) แล้วเลือกห้องจากในกล่อง
+ *   2) รายการห้อง — ส่ง mode="list" + projectId แล้วเลือกห้องเอเจนซี่ของแคมเปญนั้น
  */
-export default function ChatDock({ mode, base, streamPath, side, title, subtitle, openOnMount = false, onClose }) {
+export default function ChatDock({ mode, projectId, base, streamPath, side, title, subtitle, openOnMount = false, onClose }) {
     const isList = mode === 'list';
     const [open, setOpen] = useState(openOnMount);
     const [unread, setUnread] = useState(0);
@@ -33,10 +33,12 @@ export default function ChatDock({ mode, base, streamPath, side, title, subtitle
         if (!isList) return;
         try {
             const res = await api('/projects/chats/all');
-            setRooms(res.data || []);
-            setUnread((res.data || []).reduce((n, r) => n + r.unread, 0));
+            // แสดงเฉพาะเอเจนซี่ของแคมเปญที่เปิดอยู่
+            const mine = (res.data || []).filter(r => String(r.project_id) === String(projectId));
+            setRooms(mine);
+            setUnread(mine.reduce((n, r) => n + r.unread, 0));
         } catch { /* โหลดไม่ได้ก็ไม่ต้องรบกวน */ }
-    }, [isList]);
+    }, [isList, projectId]);
 
     // ---------- แบบห้องเดียว ----------
     const loadOneUnread = useCallback(async () => {
@@ -119,7 +121,7 @@ export default function ChatDock({ mode, base, streamPath, side, title, subtitle
                         )}
                         <div className="chatdock-name">
                             {room ? room.title : 'ข้อความ'}
-                            <span className="chatdock-sub">{room ? room.subtitle : `${rooms.length} เอเจนซี่`}</span>
+                            <span className="chatdock-sub">{room ? room.subtitle : `เอเจนซี่ในแคมเปญนี้ ${rooms.length} เจ้า`}</span>
                         </div>
                         <button type="button" onClick={close} title="ย่อลง" aria-label="ย่อกล่องข้อความ">─</button>
                     </div>
@@ -134,7 +136,7 @@ export default function ChatDock({ mode, base, streamPath, side, title, subtitle
                     ) : (
                         <div className="chatdock-list">
                             {rooms.length === 0 ? (
-                                <div className="chatdock-none">ยังไม่มีเอเจนซี่ในแคมเปญของคุณ</div>
+                                <div className="chatdock-none">แคมเปญนี้ยังไม่มีลิงก์เอเจนซี่</div>
                             ) : rooms.map(r => (
                                 <button type="button" className="chatdock-room" key={r.token} onClick={() => setPicked(r)}>
                                     <span className="chatdock-room-top">
@@ -142,7 +144,6 @@ export default function ChatDock({ mode, base, streamPath, side, title, subtitle
                                         {r.last && <span className="chatdock-room-when">{shortWhen(r.last.at)}</span>}
                                         {r.unread > 0 && <span className="chatdock-room-n">{r.unread}</span>}
                                     </span>
-                                    <span className="chatdock-room-proj">{r.project_name}</span>
                                     <span className="chatdock-room-last">
                                         {r.last
                                             ? `${r.last.from === 'team' ? 'เรา: ' : ''}${r.last.text}`
