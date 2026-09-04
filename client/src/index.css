@@ -2224,3 +2224,6 @@ a { text-decoration: none; color: inherit; }
 .data-table td.actions { white-space: nowrap; }
 .sub-del { margin-inline-start: 6px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; display: inline-grid; place-items: center; vertical-align: middle; }
 .sub-del:hover { border-color: #f0a3a3; color: #d64545; background: #fff5f5; }
+/* ปุ่มลบรายชื่อในหน้าเอเจนซี่ (คู่กับปุ่มแก้ไข) */
+.atr-del { width: 34px; height: 34px; margin-inline-start: 6px; border-radius: 9px; border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.atr-del:hover { border-color: #f0a3a3; color: #d64545; background: #fff5f5; }

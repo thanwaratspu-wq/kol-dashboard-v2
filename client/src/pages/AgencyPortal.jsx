@@ -118,7 +118,7 @@ function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agen
 
 // รายการ submission 1 อัน (ใช้ในลิสต์ของกลุ่ม/ไม่ระบุกลุ่ม)
 // แถวที่บันทึกแล้ว — แสดงในตารางเดิม (ล็อกอ่านอย่างเดียว) ไม่เด้งไปลิสต์ด้านล่าง
-function SavedGridRow({ s, n, onEdit }) {
+function SavedGridRow({ s, n, onEdit, onDelete }) {
     const st = STATUS[s.status] || STATUS.submitted;
     return (
         <>
@@ -136,6 +136,7 @@ function SavedGridRow({ s, n, onEdit }) {
                 <span className="ag-saved-cell">{s.link_account ? <a href={s.link_account} target="_blank" rel="noreferrer"><Icon name="eye" size={14} /> ลิงก์</a> : '—'}</span>
                 <div className="atr-action">
                     <button type="button" className="atr-edit" title="แก้ไขข้อมูล" onClick={() => onEdit(s)}><Icon name="edit" size={14} /></button>
+                    <button type="button" className="atr-del" title="ลบรายชื่อนี้ออก" onClick={() => onDelete(s)}><Icon name="trash" size={14} /></button>
                 </div>
             </div>
             {s.team_note && <div className="ag-team-note-banner">📝 <b>หมายเหตุจากทีม:</b> {s.team_note}</div>}
@@ -171,7 +172,7 @@ function SubItem({ s, onEdit }) {
 }
 
 // section 1 กลุ่มสินค้า — โชว์ความต้องการ (Platform/Tier/จำนวน) + ฟอร์มใส่ชื่อ + ลิสต์ของกลุ่ม
-function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, platformBudgets = {} }) {
+function GroupSection({ token, group, gi, subs, onReload, onEdit, onDelete, agencyName, platformBudgets = {} }) {
     const groupProducts = group.products || [];
     const groupPlatforms = [...new Set((group.allocations || []).map(a => a.platform).filter(Boolean))];
     const groupTiers = [...new Set((group.allocations || []).map(a => a.tier).filter(Boolean))];
@@ -306,7 +307,7 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
             <div className="ag-add-scroll">
                 <div className="ag-add-grid">
                     <div className="ag-add-head"><span>NAME</span><span>PLATFORM</span><span>FOLLOWER</span><span>PRODUCT</span><span>AGENCY</span><span>BUDGET</span><span>LINK ACCOUNT</span><span /></div>
-                    {groupSubs.map((s, si) => <SavedGridRow key={s.id} s={s} n={si + 1} onEdit={onEdit} />)}
+                    {groupSubs.map((s, si) => <SavedGridRow key={s.id} s={s} n={si + 1} onEdit={onEdit} onDelete={onDelete} />)}
                     {rows.map((en, i) => (
                         <div className="ag-add-row" key={i}>
                             <div className="atr-name"><span className="atr-num">{groupSubs.length + i + 1}</span><input value={en.account_name} onChange={e => upRow(i, 'account_name', e.target.value)} placeholder="ชื่อ Account" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveRow(i); } }} /></div>
@@ -353,6 +354,19 @@ export default function AgencyPortal() {
         api(`/agency/${token}`).then(res => setInfo(res.data)).catch(err => setError(err.message));
     }
     useEffect(() => { load(); }, [token]);
+    // ลบรายชื่อของตัวเองออก — ถ้าทีมคัดเลือกไปแล้วต้องเตือนให้หนักกว่าเดิม
+    async function deleteSub(sub) {
+        const picked = sub.status === 'confirmed';
+        const warn = picked
+            ? `\n⚠️ ทีมคัดเลือก "${sub.account_name}" ไปแล้ว ลบแล้วงานที่บันทึกไว้จะหายไปด้วย`
+            : '';
+        if (!window.confirm(`ลบ "${sub.account_name}" ออกจากรายชื่อ?${warn}\nลบแล้วกู้คืนไม่ได้`)) return;
+        try {
+            await api(`/agency/${token}/submissions/${sub.id}`, { method: 'DELETE' });
+            load();
+        } catch (err) { alert(err.message); }
+    }
+
 
     // แจ้งเตือนแท็บ: เปิดแท็บไหนอยู่ = เห็นแล้ว, แท็บอื่นเด้ง badge ถ้าทีมมีอัปเดตใหม่ (รอโหลดข้อมูลก่อนค่อย seed)
     useEffect(() => {
@@ -579,7 +593,7 @@ export default function AgencyPortal() {
                     {adGroups.length > 0 ? (
                         <>
                             {adGroups.map((g, gi) => (
-                                <GroupSection key={g.key || gi} token={token} group={g} gi={gi} subs={subs} onReload={load} onEdit={setEditSub} agencyName={info.agency_name} platformBudgets={platformBudgets} />
+                                <GroupSection key={g.key || gi} token={token} group={g} gi={gi} subs={subs} onReload={load} onEdit={setEditSub} onDelete={deleteSub} agencyName={info.agency_name} platformBudgets={platformBudgets} />
                             ))}
                             {ungrouped.length > 0 && (
                                 <div className="agency-card">

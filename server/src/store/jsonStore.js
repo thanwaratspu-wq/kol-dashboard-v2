@@ -1182,6 +1182,15 @@ const submissions = {
     async countPending(projectId) {
         return db.submissions.filter(s => s.project_id === Number(projectId) && s.status === 'submitted').length;
     },
+    // ลบรายชื่อทั้งหมดที่ส่งเข้ามาผ่านลิงก์เอเจนซี่หนึ่ง ๆ (ใช้ตอนลบลิงก์)
+    async removeByAgencyToken(token, projectId) {
+        const before = db.submissions.length;
+        db.submissions = db.submissions.filter(
+            s => !(s.agency_token === token && s.project_id === Number(projectId)));
+        const n = before - db.submissions.length;
+        if (n > 0) persist();
+        return n;
+    },
     // ลบทิ้งถาวร — ใช้ตอนเอารายชื่อออกจากแคมเปญ (ยกเลิก/ไม่เลือก แค่เปลี่ยนสถานะ แถวยังอยู่)
     async remove(subId, projectId) {
         const idx = db.submissions.findIndex(s => s.id === Number(subId) && s.project_id === Number(projectId));

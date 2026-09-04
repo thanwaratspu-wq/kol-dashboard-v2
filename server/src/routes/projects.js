@@ -321,8 +321,12 @@ router.delete('/:id/agency-links/:token', async (req, res, next) => {
     try {
         const check = await canEditProject(req, req.params.id);
         if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        // ลบลิงก์แล้วรายชื่อที่ส่งผ่านลิงก์นั้นต้องหายตามไปด้วย ไม่งั้นจะกลายเป็น
+        // รายชื่อกำพร้า — หายจากหน้าแคมเปญ แต่ยังไปโผล่ใน Dashboard/Report
+        const removed = await store.submissions.removeByAgencyToken(req.params.token, req.params.id);
         const ok = await store.projects.removeAgencyLink(req.params.id, req.params.token);
-        res.json({ status: ok ? 'success' : 'error' });
+        if (ok) await record(req, req.params.id, 'remove_agency_link', `ลบลิงก์เอเจนซี่ (รายชื่อที่ส่งผ่านลิงก์นี้ถูกลบ ${removed} คน)`);
+        res.json({ status: ok ? 'success' : 'error', data: { removed_submissions: removed } });
     } catch (err) { next(err); }
 });
 
@@ -399,6 +403,14 @@ router.delete('/:id/submissions/:subId', async (req, res, next) => {
     try {
         const check = await canEditProject(req, req.params.id);
         if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        // รายชื่อที่มาจากเอเจนซี่ให้ลบได้เฉพาะฝั่งเอเจนซี่ ฝั่งทีมใช้ "ไม่เลือก" แทน
+        // ยกเว้นลิงก์นั้นถูกลบไปแล้ว — ไม่งั้นแถวจะค้างและไม่มีใครลบได้เลย
+        const target = await store.submissions.get(req.params.subId);
+        if (target && target.project_id === Number(req.params.id) && target.agency_token) {
+            const proj = await store.projects.findByIdFull(req.params.id);
+            const alive = (proj?.agency_links || []).some(l => l.token === target.agency_token);
+            if (alive) return res.status(403).json({ status: 'error', message: 'รายชื่อนี้มาจากเอเจนซี่ ให้เอเจนซี่ลบจากลิงก์ของตัวเอง' });
+        }
         const gone = await store.submissions.remove(req.params.subId, req.params.id);
         if (!gone) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
         await record(req, req.params.id, 'remove_kol', `ลบรายชื่อออกจากแคมเปญ: ${gone.account_name}`);

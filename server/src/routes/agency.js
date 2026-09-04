@@ -191,6 +191,25 @@ router.put('/:token/submissions/:subId', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// DELETE /api/agency/:token/submissions/:subId — Agency ลบรายชื่อของตัวเองออก
+router.delete('/:token/submissions/:subId', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project, link } = resolved;
+        const target = await store.submissions.get(req.params.subId);
+        if (!target || target.project_id !== project.id) {
+            return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
+        }
+        // ลิงก์แยกต่อเจ้า: ลบได้เฉพาะรายชื่อที่ส่งผ่านลิงก์ตัวเอง
+        if (link.scoped && target.agency_token !== link.token) {
+            return res.status(403).json({ status: 'error', message: 'ไม่มีสิทธิ์ลบรายการนี้' });
+        }
+        await store.submissions.remove(req.params.subId, project.id);
+        res.json({ status: 'success', message: 'ลบรายชื่อแล้ว' });
+    } catch (err) { next(err); }
+});
+
 // POST /api/agency/:token/batch — Agency ส่งรายชื่อหลายคนพร้อมกัน
 router.post('/:token/batch', async (req, res, next) => {
     try {

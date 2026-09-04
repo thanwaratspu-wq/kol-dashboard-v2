@@ -345,6 +345,9 @@ export default function ProjectDetail() {
         return () => clearInterval(t);
     }, [id]);
 
+    // token ของลิงก์เอเจนซี่ที่ยังใช้งานอยู่ — ใช้ดูว่าแถวไหนกลายเป็นกำพร้า
+    const liveTokens = new Set(agencyLinks.map(l => l.token));
+
     // ===== ลิงก์เอเจนซี่แบบแยกต่อเจ้า =====
     function loadLinks() {
         api(`/projects/${id}/agency-links`).then(res => setAgencyLinks(res.data)).catch(() => {});
@@ -376,7 +379,7 @@ export default function ProjectDetail() {
         setNewLinkProducts(prods => prods.filter(c => valid.has(c)));
     };
     async function deleteLink(token) {
-        if (!confirm('ลบลิงก์นี้? (รายชื่อ KOL ที่ส่งผ่านลิงก์นี้จะยังอยู่ แต่ลิงก์จะเปิดไม่ได้อีก)')) return;
+        if (!confirm('ลบลิงก์นี้?\nรายชื่อ KOL ทั้งหมดที่ส่งเข้ามาผ่านลิงก์นี้จะถูกลบไปด้วย และกู้คืนไม่ได้')) return;
         try { await api(`/projects/${id}/agency-links/${token}`, { method: 'DELETE' }); loadLinks(); }
         catch (err) { alert(err.message); }
     }
@@ -452,9 +455,13 @@ export default function ProjectDetail() {
                         <button className="btn-reject" onClick={() => decideSub(s.id, 'rejected')}>✕ ไม่เลือก</button>
                     </div>
                 )}
-                <button className="sub-del" title="ลบรายชื่อนี้ออกจากแคมเปญถาวร" onClick={() => deleteSub(s)}>
-                    <Icon name="trash" size={14} />
-                </button>
+                {/* รายชื่อจากเอเจนซี่ให้เจ้าของลิงก์ลบเอง ฝั่งทีมใช้ "ไม่เลือก" แทน
+                    ยกเว้นลิงก์ถูกลบไปแล้ว = แถวกำพร้า ทีมต้องเก็บกวาดเองได้ */}
+                {(!s.agency_token || !liveTokens.has(s.agency_token)) && (
+                    <button className="sub-del" title="ลบรายชื่อนี้ออกจากแคมเปญถาวร" onClick={() => deleteSub(s)}>
+                        <Icon name="trash" size={14} />
+                    </button>
+                )}
             </td>
             <td className="tbl-spacer"></td>
         </tr>
