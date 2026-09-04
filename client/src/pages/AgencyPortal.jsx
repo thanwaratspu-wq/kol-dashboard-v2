@@ -118,13 +118,13 @@ function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agen
 
 // รายการ submission 1 อัน (ใช้ในลิสต์ของกลุ่ม/ไม่ระบุกลุ่ม)
 // แถวที่บันทึกแล้ว — แสดงในตารางเดิม (ล็อกอ่านอย่างเดียว) ไม่เด้งไปลิสต์ด้านล่าง
-function SavedGridRow({ s, onEdit }) {
+function SavedGridRow({ s, n, onEdit }) {
     const st = STATUS[s.status] || STATUS.submitted;
     return (
         <>
             <div className={'ag-add-row ag-saved-row' + (s.team_note ? ' has-note' : '')}>
                 <div className="atr-name">
-                    <span className="atr-num done">✓</span>
+                    <span className="atr-num done">{n}</span>
                     <span className="ag-saved-name">{s.account_name}</span>
                     <span className={`status ${st.cls} ag-saved-status`}>{st.label}</span>
                 </div>
@@ -175,7 +175,9 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
     const groupProducts = group.products || [];
     const groupPlatforms = [...new Set((group.allocations || []).map(a => a.platform).filter(Boolean))];
     const groupTiers = [...new Set((group.allocations || []).map(a => a.tier).filter(Boolean))];
-    const groupSubs = subs.filter(s => s.group_key === group.key);
+    // API ส่งมาแบบใหม่สุดขึ้นก่อน — กลับด้านให้คนที่บันทึกทีหลังต่อท้ายลงมาเรื่อย ๆ
+    const groupSubs = subs.filter(s => s.group_key === group.key)
+        .slice().sort((a, b) => (a.submitted_at || '').localeCompare(b.submitted_at || '') || (a.id - b.id));
     const total = group.kol_count || 0;
 
     // Budget ของกลุ่มนี้ (สำหรับปุ่มหารเฉลี่ยแบบเหมาราคา) — ใช้งบต่อกลุ่ม, ถ้าข้อมูลเดิมไม่มีค่อย fallback งบต่อ Platform
@@ -304,10 +306,10 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, agencyName, pl
             <div className="ag-add-scroll">
                 <div className="ag-add-grid">
                     <div className="ag-add-head"><span>NAME</span><span>PLATFORM</span><span>FOLLOWER</span><span>PRODUCT</span><span>AGENCY</span><span>BUDGET</span><span>LINK ACCOUNT</span><span /></div>
-                    {groupSubs.map(s => <SavedGridRow key={s.id} s={s} onEdit={onEdit} />)}
+                    {groupSubs.map((s, si) => <SavedGridRow key={s.id} s={s} n={si + 1} onEdit={onEdit} />)}
                     {rows.map((en, i) => (
                         <div className="ag-add-row" key={i}>
-                            <div className="atr-name"><span className="atr-num">{i + 1}</span><input value={en.account_name} onChange={e => upRow(i, 'account_name', e.target.value)} placeholder="ชื่อ Account" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveRow(i); } }} /></div>
+                            <div className="atr-name"><span className="atr-num">{groupSubs.length + i + 1}</span><input value={en.account_name} onChange={e => upRow(i, 'account_name', e.target.value)} placeholder="ชื่อ Account" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveRow(i); } }} /></div>
                             <select value={en.platform} onChange={e => upRow(i, 'platform', e.target.value)}>{(groupPlatforms.length ? groupPlatforms : PLATFORMS).map(p => <option key={p} value={p}>{p}</option>)}</select>
                             <input type="number" min="0" value={en.followers} onChange={e => upRow(i, 'followers', e.target.value)} placeholder="ยอดฟอล" />
                             <ProductMultiSelect value={en.product} options={groupProducts} onChange={v => upRow(i, 'product', v)} />

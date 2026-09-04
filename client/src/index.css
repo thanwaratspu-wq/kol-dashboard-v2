@@ -547,7 +547,7 @@ a { text-decoration: none; color: inherit; }
 .ag-saved-cell { font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 10px; }
 .ag-saved-name { font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-saved-status { font-size: 10px; padding: 2px 7px; flex-shrink: 0; }
-.atr-num.done { color: #fff; background: var(--mint); border-radius: 50%; width: 18px; height: 18px; display: inline-grid; place-items: center; font-size: 10.5px; }
+.atr-num.done { color: #fff; background: var(--mint); border-radius: 9px; min-width: 18px; padding: 0 5px; height: 18px; display: inline-grid; place-items: center; font-size: 10.5px; }
 .atr-edit { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
 .atr-edit:hover { border-color: var(--mint); color: var(--mint-dark); background: var(--bg-soft); }
 /* แถบ Budget + ปุ่มหารเฉลี่ย (เหมาราคา) เหนือฟอร์มใส่ชื่อ */
