@@ -8,15 +8,11 @@ import { api } from '../api/client.js';
  * โมดัลกรอกผลงานคอนเทนต์ (Views/Engagement) — กรอกมือ หรือกด "ดึงจาก TikTok"
  * props:
  *   sub          = submission
- *   group        = ad_group ที่ KOL คนนี้สังกัด (เอา Content Format ที่บรีฟไว้มาแสดง)
  *   fetchUrl     = endpoint สำหรับดึงจาก TikTok (เช่น `/ads/${sub.id}/fetch-tiktok` หรือ team route)
  *   onSave(payload) = async ผู้เรียกยิง API เอง
  *   onClose()
  */
-export default function PerfModal({ sub, group, fetchUrl, onSave, onClose }) {
-    // Content Format ยึดจากตอนตั้งแคมเปญ ไม่ให้เลือกซ้ำตรงนี้
-    // ของเก่าที่เคยเลือกไว้เองก่อนเปลี่ยนวิธี ยังแสดงเป็น fallback
-    const briefFormat = group?.content_format || sub.content_format || null;
+export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
     const [f, setF] = useState({
         views: sub.views || '', likes: sub.likes || '', comments: sub.comments || '',
         saves: sub.saves || '', shares: sub.shares || ''
@@ -69,14 +65,7 @@ export default function PerfModal({ sub, group, fetchUrl, onSave, onClose }) {
                 </button>
                 {msg && <div className="perf-msg">{msg}</div>}
 
-                <div className="field-row">
-                    <div className="field"><label>Views (ยอดวิว)</label><input inputMode="numeric" value={f.views} onChange={e => up('views', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
-                    <div className="field"><label>Content Format</label>
-                        <div className="perf-readonly" title="ตั้งไว้ตอนสร้างแคมเปญ — แก้ได้ที่หน้าแก้ไขแคมเปญ">
-                            {briefFormat ? String(briefFormat).split(',').map(x => x.trim()).filter(Boolean).join(' · ') : <span className="muted">ยังไม่ได้ระบุตอนตั้งแคมเปญ</span>}
-                        </div>
-                    </div>
-                </div>
+                <div className="field"><label>Views (ยอดวิว)</label><input inputMode="numeric" value={f.views} onChange={e => up('views', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
                 <div className="field-row">
                     <div className="field"><label>Likes</label><input inputMode="numeric" value={f.likes} onChange={e => up('likes', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
                     <div className="field"><label>Comments</label><input inputMode="numeric" value={f.comments} onChange={e => up('comments', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
