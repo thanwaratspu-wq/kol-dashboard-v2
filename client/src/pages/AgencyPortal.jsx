@@ -634,6 +634,7 @@ export default function AgencyPortal() {
 
             <ChatDock
                 base={`/agency/${token}/messages`}
+                imageBase={`/agency/${token}/messages`}
                 streamPath={`/agency/${token}/stream`}
                 side="agency"
                 title="คุยกับทีม"

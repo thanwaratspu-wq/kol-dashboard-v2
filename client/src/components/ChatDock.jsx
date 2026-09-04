@@ -21,7 +21,7 @@ const shortWhen = at => {
  *   1) ห้องเดียว — ส่ง base/streamPath/side/title มา (หน้าเอเจนซี่ หรือกดจากรายชื่อในหน้าแคมเปญ)
  *   2) รายการห้อง — ส่ง mode="list" + projectId แล้วเลือกห้องเอเจนซี่ของแคมเปญนั้น
  */
-export default function ChatDock({ mode, projectId, base, streamPath, side, title, subtitle, openOnMount = false, onClose }) {
+export default function ChatDock({ mode, projectId, base, imageBase, streamPath, side, title, subtitle, openOnMount = false, onClose }) {
     const isList = mode === 'list';
     const [open, setOpen] = useState(openOnMount);
     const [unread, setUnread] = useState(0);
@@ -103,12 +103,13 @@ export default function ChatDock({ mode, projectId, base, streamPath, side, titl
     const room = isList
         ? (picked && {
             base: `/projects/${picked.project_id}/agency-links/${picked.token}/messages`,
+            imageBase: `/agency/${picked.token}/messages`,
             streamPath: `/agency/${picked.token}/stream`,
             side: 'team',
             title: picked.agency_name,
             subtitle: picked.project_name
         })
-        : { base, streamPath, side, title, subtitle };
+        : { base, imageBase, streamPath, side, title, subtitle };
 
     return (
         <div className="chatdock">
@@ -129,7 +130,7 @@ export default function ChatDock({ mode, projectId, base, streamPath, side, titl
                     {room ? (
                         <MessageBox
                             key={room.base}
-                            base={room.base} streamPath={room.streamPath} side={room.side}
+                            base={room.base} imageBase={room.imageBase} streamPath={room.streamPath} side={room.side}
                             title={room.title} subtitle={room.subtitle}
                             onUnread={() => (isList ? loadRooms() : setUnread(0))}
                         />

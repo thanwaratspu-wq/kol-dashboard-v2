@@ -25,11 +25,15 @@ const dayLabel = at => {
  *   base   = path ตั้งต้นของ API เช่น `/agency/${token}/messages`
  *            หรือ `/projects/${id}/agency-links/${token}/messages`
  *   side   = 'team' | 'agency'  — ใช้ตัดสินว่าข้อความไหนเป็นของเรา
+ *   imageBase  = เส้นดึงรูปที่ไม่ต้องล็อกอิน เช่น `/agency/${token}/messages`
  *   streamPath = ช่อง SSE ที่ใช้ฟังว่ามีข้อความใหม่ เช่น `/agency/${token}/stream`
  *   title, subtitle
  *   onUnread(n) = แจ้งจำนวนที่ยังไม่ได้อ่านกลับไปให้หน้าแม่ (ไว้ทำป้ายตัวเลข)
  */
-export default function MessageBox({ base, streamPath, side, title, subtitle, onUnread }) {
+export default function MessageBox({ base, imageBase, streamPath, side, title, subtitle, onUnread }) {
+    // แท็ก <img> แนบ Authorization header ไม่ได้ เส้นรูปจึงต้องเป็นเส้นที่ไม่ต้องล็อกอิน
+    // ใช้เส้นของลิงก์เอเจนซี่ (กันด้วย token เหมือนช่อง SSE) — ฝั่งทีมก็รู้ token นี้อยู่แล้ว
+    const imgBase = imageBase || base;
     const [msgs, setMsgs] = useState([]);
     const [text, setText] = useState('');
     const [img, setImg] = useState(null);
@@ -129,8 +133,8 @@ export default function MessageBox({ base, streamPath, side, title, subtitle, on
                                 <span className="msgbox-who">{mine ? 'เรา' : m.by}</span>
                                 <div className="msgbox-bubble">
                                     {m.image && (
-                                        <a className="msgbox-img" href={`/api${base}/${m.id}/image`} target="_blank" rel="noreferrer">
-                                            <img src={`/api${base}/${m.id}/image`} alt={m.image.original} />
+                                        <a className="msgbox-img" href={`/api${imgBase}/${m.id}/image`} target="_blank" rel="noreferrer">
+                                            <img src={`/api${imgBase}/${m.id}/image`} alt={m.image.original} />
                                         </a>
                                     )}
                                     {m.text && <span className="msgbox-text">{m.text}</span>}
