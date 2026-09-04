@@ -137,7 +137,8 @@ router.put('/:token/submissions/:subId', async (req, res, next) => {
             account_name, followers, platform, product, agency, budget, link_account,
             draft_link, draft_link2, draft_link3, draft_link4, draft_link5,
             gencode, feedback, feedback2, feedback3, feedback4, feedback5,
-            approved, draft_status, post_url, post_date, id_post, code_expire
+            approved, draft_status, post_url, post_date, id_post, code_expire,
+            views, likes, comments, saves, shares   // ผลงานคอนเทนต์ จากโมดัล Perf
         } = req.body;
         if (account_name !== undefined && !String(account_name).trim()) {
             return res.status(400).json({ status: 'error', message: 'กรุณาระบุชื่อ Account' });
@@ -150,7 +151,8 @@ router.put('/:token/submissions/:subId', async (req, res, next) => {
             link_account,
             draft_link, draft_link2, draft_link3, draft_link4, draft_link5,
             gencode, feedback, feedback2, feedback3, feedback4, feedback5,
-            approved, draft_status, post_url, post_date, id_post, code_expire
+            approved, draft_status, post_url, post_date, id_post, code_expire,
+            views: views !== undefined ? (Number(views) || 0) : undefined, likes: likes !== undefined ? (Number(likes) || 0) : undefined, comments: comments !== undefined ? (Number(comments) || 0) : undefined, saves: saves !== undefined ? (Number(saves) || 0) : undefined, shares: shares !== undefined ? (Number(shares) || 0) : undefined
         }, link.name ? `${link.name} (เอเจนซี่)` : 'เอเจนซี่');   // ฝั่งนี้ไม่มีบัญชีผู้ใช้ ใช้ชื่อจากลิงก์แทน
         if (!data) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
         res.json({ status: 'success', data });
