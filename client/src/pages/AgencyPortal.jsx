@@ -36,7 +36,7 @@ const emptyEntry = () => ({ account_name: '', platform: 'TikTok', tier: '', prod
 function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agencyName }) {
     const [f, setF] = useState({
         account_name: sub.account_name || '', platform: sub.platform || 'TikTok',
-        product: sub.product || '', agency: sub.agency || '',
+        followers: sub.followers ?? '', product: sub.product || '', agency: sub.agency || '',
         budget: sub.budget ?? '', link_account: sub.link_account || ''
     });
     const [saving, setSaving] = useState(false);
@@ -52,6 +52,7 @@ function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agen
                 method: 'PUT',
                 body: {
                     account_name: f.account_name.trim(), platform: f.platform,
+                    followers: Number(f.followers) || 0,
                     product: f.product || null, agency: agencyName || f.agency || null,
                     budget: Number(f.budget) || 0, link_account: f.link_account || null
                 }
@@ -79,11 +80,15 @@ function EditSubmissionModal({ token, sub, products = [], onClose, onSaved, agen
                             </select>
                         </div>
                         <div className="field">
-                            <label>Product</label>
-                            {products.length > 0 ? (
-                                <ProductMultiSelect value={f.product} options={products} onChange={v => up('product', v)} />
-                            ) : <input value={f.product} onChange={e => up('product', e.target.value)} placeholder="สินค้า" />}
+                            <label>ยอดฟอล</label>
+                            <input type="number" min="0" value={f.followers} onChange={e => up('followers', e.target.value)} placeholder="เช่น 25000" />
                         </div>
+                    </div>
+                    <div className="field">
+                        <label>Product</label>
+                        {products.length > 0 ? (
+                            <ProductMultiSelect value={f.product} options={products} onChange={v => up('product', v)} />
+                        ) : <input value={f.product} onChange={e => up('product', e.target.value)} placeholder="สินค้า" />}
                     </div>
                     <div className="field-row">
                         <div className="field">
