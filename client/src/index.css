@@ -2051,7 +2051,60 @@ a { text-decoration: none; color: inherit; }
 .alp-chat { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; }
 .alp-chat:hover { border-color: var(--mint); color: var(--mint-dark); }
 .alp-chat-n { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
-/* กล่องแชทตอนเปิดเป็น popup — ให้ MessageBox เต็มกรอบ ไม่มีขอบซ้อนขอบ */
-.chat-modal { max-width: 560px; width: 100%; }
-.chat-modal .msgbox { margin-top: 0; border: none; border-radius: 0; }
-.chat-modal .msgbox-head { display: none; }
+/* ============ กล่องแชทลอยมุมขวาล่าง (แบบ Messenger) ============ */
+/* body มี zoom อยู่ ค่า fixed จะถูกย่อ-ขยายตามทั้งหน้า ซึ่งถูกต้องแล้ว ไม่ต้องชดเชย */
+.chatdock { position: fixed; inset-inline-end: 20px; bottom: 18px; z-index: 80; }
+
+/* ปุ่มลอยตอนยังไม่เปิด */
+.chatdock-launch {
+    display: flex; align-items: center; gap: 8px; padding: 11px 18px 11px 15px;
+    border: none; border-radius: 999px; background: var(--mint); color: #fff;
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(16, 133, 100, .28);
+    transition: background .15s, transform .12s;
+}
+.chatdock-launch:hover { background: var(--mint-dark); transform: translateY(-1px); }
+.chatdock-launch:focus-visible { outline: 3px solid var(--mint-dark); outline-offset: 2px; }
+.chatdock-launch-ico { font-size: 16px; line-height: 1; }
+.chatdock-launch-txt { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatdock-launch-n {
+    min-width: 19px; height: 19px; padding: 0 6px; border-radius: 999px;
+    background: #fff; color: var(--danger); font-size: 11px; font-weight: 800;
+    display: grid; place-items: center; font-variant-numeric: tabular-nums;
+}
+
+/* กล่องตอนเปิด — เล็ก พอคุยได้ ไม่บังหน้างาน */
+.chatdock-panel {
+    width: 320px; border-radius: 16px; overflow: hidden; background: var(--card);
+    border: 1px solid var(--border); box-shadow: 0 18px 44px rgba(16, 133, 100, .22);
+    animation: dockUp .16s ease-out;
+}
+@keyframes dockUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .chatdock-panel { animation: none; } }
+
+.chatdock-bar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 14px;
+    background: var(--mint); color: #fff;
+}
+.chatdock-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatdock-sub { display: block; font-size: 10.5px; font-weight: 400; opacity: .85; overflow: hidden; text-overflow: ellipsis; }
+.chatdock-bar button {
+    flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 8px;
+    background: rgba(255,255,255,.16); color: #fff; font-size: 13px; cursor: pointer; line-height: 1;
+}
+.chatdock-bar button:hover { background: rgba(255,255,255,.3); }
+
+/* MessageBox ที่อยู่ในกล่องลอย — ตัดขอบและหัวข้อซ้ำออก แล้วย่อความสูง */
+.chatdock .msgbox { margin-top: 0; border: none; border-radius: 0; }
+.chatdock .msgbox-head { display: none; }
+.chatdock .msgbox-thread { height: 300px; padding: 12px; }
+.chatdock .msgbox-msg { max-width: 90%; }
+.chatdock .msgbox-img img { max-width: 180px; max-height: 180px; }
+.chatdock .msgbox-composer { padding: 10px; gap: 6px; }
+.chatdock .msgbox-send { padding: 0 13px; }
+
+/* จอแคบ: ให้กล่องกินเกือบเต็มความกว้าง แต่ยังลอยอยู่ล่าง */
+@media (max-width: 460px) {
+    .chatdock { inset-inline: 10px; inset-inline-end: 10px; bottom: 10px; }
+    .chatdock-panel { width: auto; }
+}

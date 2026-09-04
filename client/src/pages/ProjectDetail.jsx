@@ -6,7 +6,8 @@ import ProjectForm from '../components/ProjectForm.jsx';
 import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
-import MessageBox, { unreadCount } from '../components/MessageBox.jsx';
+import { unreadCount } from '../components/MessageBox.jsx';
+import ChatDock from '../components/ChatDock.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
@@ -864,22 +865,16 @@ export default function ProjectDetail() {
             })()}
 
             {chatWith && (
-                <div className="modal-backdrop" onClick={() => { setChatWith(null); loadChatUnread(); }}>
-                    <div className="modal chat-modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal-head">
-                            <h3>💬 คุยกับ {chatWith.name}</h3>
-                            <button className="modal-x" onClick={() => { setChatWith(null); loadChatUnread(); }}>×</button>
-                        </div>
-                        <MessageBox
-                            base={`/projects/${id}/agency-links/${chatWith.token}/messages`}
-                            streamPath={`/agency/${chatWith.token}/stream`}
-                            side="team"
-                            title={chatWith.name}
-                            subtitle={project.name}
-                            onUnread={() => setChatUnread(u => ({ ...u, [chatWith.token]: 0 }))}
-                        />
-                    </div>
-                </div>
+                <ChatDock
+                    key={chatWith.token}
+                    base={`/projects/${id}/agency-links/${chatWith.token}/messages`}
+                    streamPath={`/agency/${chatWith.token}/stream`}
+                    side="team"
+                    title={chatWith.name}
+                    subtitle={project.name}
+                    openOnMount
+                    onClose={() => { setChatWith(null); loadChatUnread(); }}
+                />
             )}
 
             {showAddSub && (
