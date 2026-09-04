@@ -151,7 +151,19 @@ export default function Kols() {
         return (b.post_date || '').localeCompare(a.post_date || '');
     }
 
+    // เรียงตามวัน Gencode ที่เหลือ — คนที่ยังไม่มีวัน (—) อยู่ท้ายสุดเสมอ
+    // หมดอายุแล้ว (ติดลบ) ถือว่าด่วนที่สุด จึงอยู่บนสุดตอนเรียงจากน้อยไปมาก
+    function byDayLeft(a, b, asc) {
+        const ka = a.day_left, kb = b.day_left;
+        if (ka == null && kb == null) return byMonth(a, b, false);
+        if (ka == null) return 1;
+        if (kb == null) return -1;
+        if (ka !== kb) return asc ? ka - kb : kb - ka;
+        return byMonth(a, b, false);
+    }
+
     const sorted = [...shown].sort((a, b) => {
+        if (sort.startsWith('left-')) return byDayLeft(a, b, sort === 'left-asc');
         if (!sort.startsWith('perf-')) return byMonth(a, b, sort === 'month-asc');
         const d = rankOf(a) - rankOf(b);
         if (d) return d;
@@ -165,6 +177,7 @@ export default function Kols() {
 
     const sortByMonth = () => setSort(v => (v === 'month-desc' ? 'month-asc' : 'month-desc'));
     const sortByPerf = () => setSort(v => (v === 'perf-best' ? 'perf-worst' : v === 'perf-worst' ? 'month-desc' : 'perf-best'));
+    const sortByLeft = () => setSort(v => (v === 'left-asc' ? 'left-desc' : v === 'left-desc' ? 'month-desc' : 'left-asc'));
 
     const total = shown.length;
     const budget = shown.reduce((a, r) => a + r.cost, 0);
@@ -265,7 +278,16 @@ export default function Kols() {
                                         <span className="ka-sort-ico">{sort === 'perf-best' ? '▲' : sort === 'perf-worst' ? '▼' : '⇅'}</span>
                                     </button>
                                 </th>
-                                <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th><th>Day Left</th>
+                                <th>วันที่ลงงาน</th><th>วันที่เริ่ม Gen</th><th>Days</th>
+                                <th className="ka-sort-th">
+                                    <button type="button" className={'ka-sort' + (sort.startsWith('left-') ? ' on' : '')} onClick={sortByLeft}
+                                        title={sort === 'left-asc' ? 'เรียง: ใกล้หมดอายุขึ้นก่อน — กดอีกครั้งเพื่อสลับเป็นเหลือเยอะขึ้นก่อน'
+                                            : sort === 'left-desc' ? 'เรียง: เหลือเยอะขึ้นก่อน — กดอีกครั้งเพื่อกลับไปเรียงตามเดือน'
+                                                : 'กดเพื่อเรียงตามวันที่เหลือ'}>
+                                        Day Left
+                                        <span className="ka-sort-ico">{sort === 'left-asc' ? '▲' : sort === 'left-desc' ? '▼' : '⇅'}</span>
+                                    </button>
+                                </th>
                                 <th>Post Link</th><th>Gencode</th><th>ID POST</th>
                             </tr>
                         </thead>
