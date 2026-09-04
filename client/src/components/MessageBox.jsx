@@ -20,6 +20,32 @@ const dayLabel = at => {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 };
 
+// ย่อรูปก่อนส่ง — รูปจากมือถือ/สกรีนช็อตมักหนักหลายเมกะไบต์
+// ทั้งขาอัปและขาที่อีกฝั่งโหลดมาดูจึงช้ามากเมื่อใช้ผ่าน Wi-Fi
+// ย่อด้านยาวสุดเหลือ 1600px พอสำหรับอ่านตัวเลขในภาพ Insights และเล็กลงหลายเท่า
+const MAX_EDGE = 1600;
+const SHRINK_OVER = 700 * 1024;   // เล็กกว่านี้ไม่ต้องยุ่ง เสียเวลาเปล่า
+
+async function shrinkImage(file) {
+    if (!file || file.type === 'image/gif') return file;   // GIF ย่อแล้วภาพเคลื่อนไหวหาย
+    if (file.size <= SHRINK_OVER) return file;
+    try {
+        const bmp = await createImageBitmap(file);
+        const scale = Math.min(1, MAX_EDGE / Math.max(bmp.width, bmp.height));
+        const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        bmp.close();
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+        if (!blob || blob.size >= file.size) return file;   // ย่อแล้วไม่เล็กลง ก็ส่งของเดิม
+        const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+        return new File([blob], name, { type: 'image/jpeg' });
+    } catch {
+        return file;   // เบราว์เซอร์ย่อไม่ได้ ก็ส่งของเดิมไปตามปกติ
+    }
+}
+
 // รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
 // จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
 function ChatImage({ src, fallbackSrc, name, onOpen }) {
@@ -78,6 +104,7 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     const [text, setText] = useState('');
     const [img, setImg] = useState(null);
     const [sending, setSending] = useState(false);
+    const [preparing, setPreparing] = useState(false);   // กำลังย่อรูปที่เพิ่งเลือก
     const [err, setErr] = useState('');
     const fileRef = useRef(null);
     const threadRef = useRef(null);
@@ -137,6 +164,19 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
         stickBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     }
 
+    // ย่อรูปตั้งแต่ตอนเลือกไฟล์ ระหว่างที่ยังพิมพ์ข้อความอยู่
+    // กดส่งจะได้ไม่ต้องรอย่อ (รูปใหญ่ ๆ ใช้เวลาย่อเป็นวินาที)
+    async function pickImage(file) {
+        if (!file) { setImg(null); return; }
+        setImg(file);           // โชว์ชื่อไฟล์ให้เห็นทันที
+        setPreparing(true);
+        try {
+            const small = await shrinkImage(file);
+            // ถ้าระหว่างย่อผู้ใช้เปลี่ยนไฟล์หรือเอาออกไปแล้ว อย่าไปทับของใหม่
+            setImg(prev => (prev === file ? small : prev));
+        } finally { setPreparing(false); }
+    }
+
     async function send(e) {
         e.preventDefault();
         if (!text.trim() && !img) return;
@@ -144,7 +184,7 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
         try {
             if (img) {
                 const fd = new FormData();
-                fd.append('image', img);
+                fd.append('image', img);   // ย่อไปแล้วตั้งแต่ตอนเลือกไฟล์
                 if (text.trim()) fd.append('text', text.trim());
                 const res = await fetch(`/api${base}`, { method: 'POST', headers: authHeader(), body: fd });
                 const j = await res.json().catch(() => null);
@@ -212,11 +252,11 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                     placeholder="พิมพ์ข้อความ…" aria-label="ข้อความ" />
                 <button type="button" className="msgbox-clip" onClick={() => fileRef.current.click()}
                     title="แนบรูป" aria-label="แนบรูป">📎</button>
-                <button type="submit" className="msgbox-send" disabled={sending || (!text.trim() && !img)}>
-                    {sending ? 'กำลังส่ง…' : 'ส่ง'}
+                <button type="submit" className="msgbox-send" disabled={sending || preparing || (!text.trim() && !img)}>
+                    {preparing ? 'ย่อรูป…' : sending ? 'กำลังส่ง…' : 'ส่ง'}
                 </button>
                 <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={e => setImg(e.target.files[0] || null)} />
+                    onChange={e => pickImage(e.target.files[0] || null)} />
             </form>
 
             {zoomed && <Lightbox src={zoomed.src} name={zoomed.name} onClose={() => setZoomed(null)} />}
