@@ -216,6 +216,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                 name: form.name,
                 brand: form.brand,
                 objective: form.objective || null,
+                brief_link: (form.brief_link && form.brief_link.trim()) ? form.brief_link.trim() : null,
                 products: flatProducts,
                 ad_groups: groups,
                 product_briefs,
@@ -238,6 +239,11 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                 saved = res.data;
             }
             const pid = isEdit ? editing.id : saved.id;
+            // อัปโหลดไฟล์บรีฟหลักของแคมเปญ (ถ้าเลือกไฟล์ไว้)
+            if (briefFile) {
+                try { await uploadFile(`/projects/${pid}/brief/upload`, briefFile); }
+                catch (e) { alert(`อัปโหลดบรีฟหลักไม่สำเร็จ: ${e.message}`); }
+            }
             // อัปโหลดไฟล์บรีฟหลักต่อ Platform (ที่เพิ่งเลือกใหม่)
             for (const [pf, file] of Object.entries(pfBriefFiles)) {
                 try { await uploadFile(`/projects/${pid}/platform-brief/${encodeURIComponent(pf)}/file`, file); }
@@ -288,6 +294,26 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                         <textarea rows="3" value={form.objective}
                             onChange={e => update('objective', e.target.value)}
                             placeholder="รายละเอียดของแคมเปญ..." />
+                    </div>
+
+                    {/* บรีฟหลักของแคมเปญ — ลิงก์หรือไฟล์ ใช้กับทุกกลุ่ม
+                        (บรีฟแยกต่อ Platform / ต่อกลุ่ม อยู่ในส่วนกลุ่มสินค้าด้านล่าง) */}
+                    <div className="field">
+                        <label>บรีฟหลัก <span className="dash-section-sub">วางลิงก์ หรืออัปไฟล์ก็ได้ อย่างใดอย่างหนึ่ง</span></label>
+                        <div className="pbrief-row">
+                            <input className="pbrief-link" type="url" value={form.brief_link}
+                                onChange={e => update('brief_link', e.target.value)}
+                                placeholder="ลิงก์บรีฟ (https://...)" disabled={!!briefFile} />
+                            <label className={'pbrief-file-btn' + ((briefFile || editing?.brief_file) ? ' has-file' : '')}>
+                                <Icon name="upload" size={14} /> {briefFile ? briefFile.name : (editing?.brief_file ? editing.brief_file.original : 'อัปไฟล์')}
+                                <input ref={briefInputRef} type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx"
+                                    onChange={e => { if (e.target.files[0]) { setBriefFile(e.target.files[0]); update('brief_link', ''); } }} />
+                            </label>
+                            {briefFile && (
+                                <button type="button" className="pbrief-file-clear" title="เอาไฟล์ออก"
+                                    onClick={() => { setBriefFile(null); if (briefInputRef.current) briefInputRef.current.value = ''; }}>×</button>
+                            )}
+                        </div>
                     </div>
 
                     {/* สินค้า & กลุ่มโฆษณา — Platform ชั้นบน (มีบรีฟหลักต่อ Platform) */}

@@ -414,7 +414,8 @@ const projects = {
         const p = db.projects.find(p => p.id === Number(id));
         if (!p) return null;
         for (const key of ['name', 'brand', 'objective', 'product', 'products', 'ad_groups', 'owner', 'brief_link', 'product_briefs', 'platform_briefs', 'platform_budgets', 'kol_target', 'budget', 'start_date', 'end_date', 'status', 'description', 'updated_by']) {
-            if (fields[key] !== undefined && fields[key] !== null) p[key] = fields[key];
+            // null = ผู้ใช้ล้างค่าออกจริง ๆ (route ส่งเฉพาะคีย์ที่ client ส่งมา คีย์ที่ไม่ได้แก้จะเป็น undefined)
+            if (fields[key] !== undefined) p[key] = fields[key];
         }
         p.updated_at = now(); persist();
         return clone(p);
