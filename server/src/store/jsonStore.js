@@ -879,6 +879,7 @@ const dashboard = {
 
         return {
             total_kols: totalKols,
+            total_campaigns: projects.length,   // จำนวนแคมเปญที่เอางบมารวมกัน
             total_budget: totalBudget,
             total_spent: totalFee,
             total_views: totalViews,

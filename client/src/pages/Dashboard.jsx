@@ -105,14 +105,14 @@ export default function Dashboard() {
                 {/* การ์ดใหญ่ (ไล่สีมินต์) */}
                 <div className="bento-hero">
                     <div className="bento-hero-top">
-                        <span className="bento-hero-label">ค่าใช้จ่ายของ KOL · ช่วงที่เลือก</span>
+                        <span className="bento-hero-label">งบประมาณแคมเปญทั้งหมด</span>
                         <div className="bento-hero-ico"><Icon name="coins" size={20} /></div>
                     </div>
-                    <div className="bento-hero-value">{data ? fmtMoney(data.total_spent) : '—'}</div>
+                    <div className="bento-hero-value">{data ? fmtMoney(data.total_budget) : '—'}</div>
                     <div className="bento-hero-stats">
                         <div><div className="bh-k">จำนวน KOL</div><div className="bh-v">{data ? data.total_kols : '—'}</div></div>
-                        <div><div className="bh-k">แคมเปญ</div><div className="bh-v">{data ? (data.campaigns || []).length : '—'}</div></div>
-                        <div><div className="bh-k">ยอดวิวรวม</div><div className="bh-v">{data ? fmtNum(data.total_views) : '—'}</div></div>
+                        <div><div className="bh-k">แคมเปญ</div><div className="bh-v">{data ? data.total_campaigns : '—'}</div></div>
+                        <div><div className="bh-k">ค่าจ้าง KOL ที่ใช้ไป</div><div className="bh-v">{data ? fmtMoney(data.total_spent) : '—'}</div></div>
                     </div>
                 </div>
 
