@@ -23,6 +23,19 @@ const reportUpload = multer({
     }
 });
 
+// รูปแนบในแชท — รูปเท่านั้น และเล็กกว่าไฟล์ Report เพราะเป็นภาพประกอบการคุย
+const chatImage = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+        filename: (req, file, cb) => cb(null, `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname)}`)
+    }),
+    limits: { fileSize: 8 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ok = ['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(path.extname(file.originalname).toLowerCase());
+        cb(ok ? null : new Error('แนบได้เฉพาะรูปภาพ'), ok);
+    }
+});
+
 // บรีฟต่อสินค้า เฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตามขอบเขตสินค้าของลิงก์)
 function scopedProductBriefs(project, link) {
     const pb = project.product_briefs || {};
@@ -296,6 +309,65 @@ router.delete('/:token/reports/:reportId', async (req, res, next) => {
             try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch { /* ลบไฟล์ไม่ได้ก็ปล่อย ข้อมูลถูกลบไปแล้ว */ }
         }
         res.json({ status: 'success', data: gone });
+    } catch (err) { next(err); }
+});
+
+// ---------- แชทกับทีม ----------
+// GET /api/agency/:token/messages
+router.get('/:token/messages', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const data = await store.projects.listAgencyMessages(r.project.id, req.params.token);
+        if (!data) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        res.json({ status: 'success', data });
+    } catch (err) { next(err); }
+});
+
+// POST /api/agency/:token/messages — ข้อความ (+ รูป 1 ใบ)
+router.post('/:token/messages', (req, res, next) => {
+    if (!String(req.headers['content-type'] || '').startsWith('multipart/')) return next();
+    chatImage.single('image')(req, res, err => {
+        if (err) return res.status(400).json({ status: 'error', message: err.message });
+        next();
+    });
+}, async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const text = String(req.body.text || '').trim();
+        if (!text && !req.file) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
+        const row = await store.projects.addAgencyMessage(r.project.id, req.params.token, {
+            from: 'agency',
+            by: r.link.name || 'เอเจนซี่',
+            text,
+            image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
+        });
+        if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        res.status(201).json({ status: 'success', data: row });
+    } catch (err) { next(err); }
+});
+
+// POST /api/agency/:token/messages/read — บอกว่าอ่านถึงตอนนี้แล้ว
+router.post('/:token/messages/read', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        await store.projects.markAgencyRead(r.project.id, req.params.token, 'agency');
+        res.json({ status: 'success' });
+    } catch (err) { next(err); }
+});
+
+// GET /api/agency/:token/messages/:msgId/image
+router.get('/:token/messages/:msgId/image', async (req, res, next) => {
+    try {
+        const r = await store.projects.resolveToken(req.params.token);
+        if (!r) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const img = await store.projects.getAgencyMessageImage(r.project.id, req.params.token, req.params.msgId);
+        if (!img) return res.status(404).json({ status: 'error', message: 'ไม่พบรูป' });
+        const fp = path.join(UPLOAD_DIR, img.filename);
+        if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(fp);
     } catch (err) { next(err); }
 });
 

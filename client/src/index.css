@@ -2015,3 +2015,43 @@ a { text-decoration: none; color: inherit; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none;
 }
 .alp-report:hover { border-color: var(--mint); background: var(--bg-soft); }
+
+/* ============ ห้องคุยทีม ↔ เอเจนซี่ ============ */
+.msgbox { background: var(--card); border: 1px solid var(--border); border-radius: 18px; margin-top: 18px; display: flex; flex-direction: column; overflow: hidden; }
+.msgbox-head { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.msgbox-title { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.msgbox-sub { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 1px; }
+.msgbox-thread { display: flex; flex-direction: column; gap: 10px; padding: 16px; height: 340px; overflow-y: auto; }
+.msgbox-empty { margin: auto; font-size: 12.5px; color: var(--muted); }
+.msgbox-day { display: flex; justify-content: center; margin: 4px 0; }
+.msgbox-day span { font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--bg-soft); padding: 3px 11px; border-radius: 999px; }
+.msgbox-msg { display: flex; flex-direction: column; gap: 3px; max-width: 82%; margin-bottom: 10px; }
+.msgbox-msg.mine { margin-inline-start: auto; align-items: flex-end; }
+.msgbox-who { font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 0 3px; }
+.msgbox-bubble { padding: 9px 13px; border-radius: 15px; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text); font-size: 13px; line-height: 1.62; border-bottom-left-radius: 5px; }
+.msgbox-msg.mine .msgbox-bubble { background: var(--mint); border-color: var(--mint); color: #fff; border-bottom-left-radius: 15px; border-bottom-right-radius: 5px; }
+.msgbox-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msgbox-img { display: block; margin-bottom: 6px; }
+.msgbox-img:last-child { margin-bottom: 0; }
+.msgbox-img img { display: block; max-width: 240px; max-height: 240px; border-radius: 10px; }
+.msgbox-stamp { font-size: 10px; color: var(--muted); padding: 0 3px; font-variant-numeric: tabular-nums; }
+/* รูปที่เลือกไว้ แต่ยังไม่ได้กดส่ง */
+.msgbox-pending { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg-soft); font-size: 11.5px; font-weight: 600; color: var(--mint-dark); }
+.msgbox-pending button { margin-inline-start: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+.msgbox-pending button:hover { color: var(--danger); }
+.msgbox-composer { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); }
+.msgbox-composer input[type="text"], .msgbox-composer input:not([type]) { flex: 1; min-width: 0; padding: 10px 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); font-size: 12.5px; color: var(--text); }
+.msgbox-composer input:focus { outline: none; border-color: var(--mint); box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
+.msgbox-clip { flex-shrink: 0; width: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); font-size: 15px; cursor: pointer; }
+.msgbox-clip:hover { border-color: var(--mint); }
+.msgbox-send { flex-shrink: 0; padding: 0 17px; border: none; border-radius: 12px; background: var(--mint); color: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.msgbox-send:hover:not(:disabled) { background: var(--mint-dark); }
+.msgbox-send:disabled { opacity: .5; cursor: default; }
+/* ปุ่มคุย + ป้ายตัวเลข ในแถวเอเจนซี่ (ฝั่งทีม) */
+.alp-chat { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; }
+.alp-chat:hover { border-color: var(--mint); color: var(--mint-dark); }
+.alp-chat-n { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10.5px; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+/* กล่องแชทตอนเปิดเป็น popup — ให้ MessageBox เต็มกรอบ ไม่มีขอบซ้อนขอบ */
+.chat-modal { max-width: 560px; width: 100%; }
+.chat-modal .msgbox { margin-top: 0; border: none; border-radius: 0; }
+.chat-modal .msgbox-head { display: none; }

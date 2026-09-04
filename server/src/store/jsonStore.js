@@ -475,6 +475,48 @@ const projects = {
         persist();
         return clone(link);
     },
+    // ---------- ข้อความคุยกันระหว่างทีมกับเอเจนซี่ (ห้องละ 1 ลิงก์เอเจนซี่) ----------
+    // msg = { id, from: "team"|"agency", by, text, image?: {filename,original,size}, at }
+    async addAgencyMessage(id, token, msg) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link) return null;
+        if (!Array.isArray(link.messages)) link.messages = [];
+        const row = { id: genReportId(), at: now(), ...msg };
+        link.messages.push(row);
+        persist();
+        return clone(row);
+    },
+    async listAgencyMessages(id, token) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link) return null;
+        return {
+            messages: clone(link.messages || []),
+            team_read_at: link.team_read_at || null,
+            agency_read_at: link.agency_read_at || null
+        };
+    },
+    // จำว่าอ่านถึงเมื่อไหร่ ใช้คิดจำนวนที่ยังไม่ได้อ่านของอีกฝั่ง
+    async markAgencyRead(id, token, side) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link) return null;
+        link[side === 'team' ? 'team_read_at' : 'agency_read_at'] = now();
+        persist();
+        return true;
+    },
+    // ไฟล์รูปในข้อความ — หาโดยไม่ต้องรู้ว่าอยู่ข้อความไหน
+    async getAgencyMessageImage(id, token, msgId) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        const m = link && (link.messages || []).find(x => x.id === msgId);
+        return m && m.image ? clone(m.image) : null;
+    },
     // ---------- ไฟล์/ลิงก์ Report ที่เอเจนซี่ส่งเข้ามา (เก็บผูกกับลิงก์ของแต่ละเจ้า) ----------
     // meta = { kind: "file"|"link", original, filename?, size?, url?, note?, uploaded_at }
     async addAgencyReport(id, token, meta) {

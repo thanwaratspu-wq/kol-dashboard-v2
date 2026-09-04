@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, openFile } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
@@ -6,6 +6,7 @@ import ProjectForm from '../components/ProjectForm.jsx';
 import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
+import MessageBox, { unreadCount } from '../components/MessageBox.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
@@ -222,7 +223,7 @@ function ScopeProducts({ codes, limit = 6 }) {
 }
 
 // แถบลิงก์เอเจนซี่ 1 อัน — ย่อเป็นบรรทัดเดียว (ชื่อ + สรุปขอบเขต + ปุ่ม) กด ▾ เพื่อดู URL + สินค้าเต็ม
-function AgencyLinkRow({ l, url, copied, onCopy, onDelete, projectId }) {
+function AgencyLinkRow({ l, url, copied, onCopy, onDelete, onChat, unread = 0, projectId }) {
     const reports = l.reports || [];
     const [open, setOpen] = useState(false);
     const prods = l.products || [];
@@ -240,6 +241,9 @@ function AgencyLinkRow({ l, url, copied, onCopy, onDelete, projectId }) {
                         📊 {reports.length ? `${reports.length} ไฟล์` : 'ยังไม่ส่ง'}
                     </span>
                 </div>
+                <button type="button" className="alp-chat" onClick={onChat} title="คุยกับเอเจนซี่เจ้านี้">
+                    💬 คุย{unread > 0 && <span className="alp-chat-n">{unread}</span>}
+                </button>
                 <button className="btn-ghost" onClick={onCopy}>{copied ? '✓ คัดลอกแล้ว' : 'คัดลอก'}</button>
                 <a className="btn-ghost" href={url} target="_blank" rel="noreferrer">เปิดดู</a>
                 <button className="alp-del" title="ลบลิงก์" onClick={onDelete}><Icon name="trash" size={15} /></button>
@@ -284,6 +288,27 @@ export default function ProjectDetail() {
     const [deleting, setDeleting] = useState(false);
     const [submissions, setSubmissions] = useState([]);
     const [agencyLinks, setAgencyLinks] = useState([]);
+    const [chatWith, setChatWith] = useState(null);      // เอเจนซี่ที่กำลังเปิดห้องคุยอยู่
+    const [chatUnread, setChatUnread] = useState({});    // { token: จำนวนที่ยังไม่ได้อ่าน }
+
+    // นับข้อความที่เอเจนซี่ส่งมาแล้วเรายังไม่ได้เปิดอ่าน — เช็คซ้ำทุก 30 วิ เหมือนในห้องแชท
+    const loadChatUnread = useCallback(async () => {
+        if (!agencyLinks.length) { setChatUnread({}); return; }
+        const out = {};
+        await Promise.all(agencyLinks.map(async l => {
+            try {
+                const res = await api(`/projects/${id}/agency-links/${l.token}/messages`);
+                out[l.token] = unreadCount(res.data, 'team');
+            } catch { /* อ่านไม่ได้ก็ข้าม ไม่ต้องรบกวนผู้ใช้ */ }
+        }));
+        setChatUnread(out);
+    }, [agencyLinks, id]);
+
+    useEffect(() => {
+        loadChatUnread();
+        const t = setInterval(loadChatUnread, 30000);
+        return () => clearInterval(t);
+    }, [loadChatUnread]);
     const [showLinks, setShowLinks] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
     const [newLinkName, setNewLinkName] = useState('');
@@ -694,6 +719,8 @@ export default function ProjectDetail() {
                                         onCopy={() => copyLink(l.token)}
                                         onDelete={() => deleteLink(l.token)}
                                         projectId={id}
+                                        unread={chatUnread[l.token] || 0}
+                                        onChat={() => setChatWith(l)}
                                     />
                                 ))}
                             </div>
@@ -835,6 +862,24 @@ export default function ProjectDetail() {
                     </>
                 );
             })()}
+
+            {chatWith && (
+                <div className="modal-backdrop" onClick={() => { setChatWith(null); loadChatUnread(); }}>
+                    <div className="modal chat-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-head">
+                            <h3>💬 คุยกับ {chatWith.name}</h3>
+                            <button className="modal-x" onClick={() => { setChatWith(null); loadChatUnread(); }}>×</button>
+                        </div>
+                        <MessageBox
+                            base={`/projects/${id}/agency-links/${chatWith.token}/messages`}
+                            side="team"
+                            title={chatWith.name}
+                            subtitle={project.name}
+                            onUnread={() => setChatUnread(u => ({ ...u, [chatWith.token]: 0 }))}
+                        />
+                    </div>
+                </div>
+            )}
 
             {showAddSub && (
                 <AddSubmissionModal

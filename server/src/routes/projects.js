@@ -12,6 +12,19 @@ router.use(authenticate);
 // ---------- ที่เก็บไฟล์บรีฟ (ใช้โฟลเดอร์ uploads ร่วมกัน) ----------
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// รูปแนบในแชทกับเอเจนซี่ — รูปเท่านั้น
+const chatImage = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, path.join(__dirname, '..', '..', 'uploads')),
+        filename: (req, file, cb) => cb(null, `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname)}`)
+    }),
+    limits: { fileSize: 8 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ok = ['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(path.extname(file.originalname).toLowerCase());
+        cb(ok ? null : new Error('แนบได้เฉพาะรูปภาพ'), ok);
+    }
+});
+
 const briefUpload = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -397,6 +410,62 @@ router.get('/:id/agency-reports/:token/:reportId/file', async (req, res, next) =
         const r = await store.projects.getAgencyReport(req.params.id, req.params.token, req.params.reportId);
         if (!r || r.kind !== 'file') return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์' });
         const fp = path.join(__dirname, '..', '..', 'uploads', r.filename);
+        if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(fp);
+    } catch (err) { next(err); }
+});
+
+// ---------- แชทกับเอเจนซี่ (ฝั่งทีม) ----------
+router.get('/:id/agency-links/:token/messages', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const data = await store.projects.listAgencyMessages(req.params.id, req.params.token);
+        if (!data) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        res.json({ status: 'success', data });
+    } catch (err) { next(err); }
+});
+
+router.post('/:id/agency-links/:token/messages', (req, res, next) => {
+    if (!String(req.headers['content-type'] || '').startsWith('multipart/')) return next();
+    chatImage.single('image')(req, res, err => {
+        if (err) return res.status(400).json({ status: 'error', message: err.message });
+        next();
+    });
+}, async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const text = String(req.body.text || '').trim();
+        if (!text && !req.file) return res.status(400).json({ status: 'error', message: 'พิมพ์ข้อความ หรือแนบรูปอย่างน้อยหนึ่งอย่าง' });
+        const user = await store.users.findById(req.user.id);
+        const row = await store.projects.addAgencyMessage(req.params.id, req.params.token, {
+            from: 'team',
+            by: user ? (user.full_name || user.username) : 'ทีม',
+            text,
+            image: req.file ? { filename: req.file.filename, original: req.file.originalname, size: req.file.size } : null
+        });
+        if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบห้องแชท' });
+        res.status(201).json({ status: 'success', data: row });
+    } catch (err) { next(err); }
+});
+
+router.post('/:id/agency-links/:token/messages/read', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        await store.projects.markAgencyRead(req.params.id, req.params.token, 'team');
+        res.json({ status: 'success' });
+    } catch (err) { next(err); }
+});
+
+router.get('/:id/agency-links/:token/messages/:msgId/image', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const img = await store.projects.getAgencyMessageImage(req.params.id, req.params.token, req.params.msgId);
+        if (!img) return res.status(404).json({ status: 'error', message: 'ไม่พบรูป' });
+        const fp = path.join(__dirname, '..', '..', 'uploads', img.filename);
         if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
         res.sendFile(fp);
     } catch (err) { next(err); }
