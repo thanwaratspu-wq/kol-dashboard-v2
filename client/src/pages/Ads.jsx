@@ -150,9 +150,13 @@ function AdRow({ row, onSaved }) {
                     : <span className="muted">—</span>}
             </div>
             <div className="ads-cell">
-                {row.content_type || row.media_type || row.group_format ? (
+                {row.content_type ? (
+                    <span className="proc-ctype-chip">{row.content_type}</span>
+                ) : <span className="muted">—</span>}
+            </div>
+            <div className="ads-cell">
+                {row.media_type || row.group_format ? (
                     <>
-                        {row.content_type && <span className="proc-ctype-chip">{row.content_type}</span>}
                         {row.media_type && <span className="proc-ctype-chip media">{row.media_type}</span>}
                         {splitCsv(row.group_format).map(x => <span className="proc-ctype-chip fmt" key={x}>{x}</span>)}
                     </>
@@ -352,7 +356,7 @@ export default function Ads() {
                                         options={[{ value: '', label: 'ทุก Platform', count: countIf('platform', () => true) },
                                         ...platformOptions.map(p => ({ value: p, label: p, count: countIf('platform', r => r.platform === p) }))]} />
                                 </span>
-                                <span>แคมเปญ</span><span>PRODUCT</span><span>TARGET</span><span>CONTENT TYPE</span><span>โพสต์</span><span>GENCODE</span><span>ID POST</span><span>Post Date</span>
+                                <span>แคมเปญ</span><span>PRODUCT</span><span>TARGET</span><span>CONTENT TYPE</span><span>CONTENT FORMAT</span><span>โพสต์</span><span>GENCODE</span><span>ID POST</span><span>Post Date</span>
                                 <span>สถานะ
                                     <ColumnFilter label="สถานะยิงแอด" value={status} onPick={setStatus}
                                         options={[{ value: '', label: 'ทุกสถานะ', count: countIf('status', () => true) },

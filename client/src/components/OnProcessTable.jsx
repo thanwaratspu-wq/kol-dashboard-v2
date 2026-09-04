@@ -96,9 +96,15 @@ function ProcessRow({ sub, putSubmission, reload, showAds = false, group = null,
             )}
             {showAds && (
                 <div className="proc-cell">
-                    {group?.content_type || group?.media_type || group?.content_format ? (
+                    {group?.content_type
+                        ? <span className="proc-ctype-chip">{group.content_type}</span>
+                        : <span className="muted">—</span>}
+                </div>
+            )}
+            {showAds && (
+                <div className="proc-cell">
+                    {group?.media_type || group?.content_format ? (
                         <>
-                            {group.content_type && <span className="proc-ctype-chip">{group.content_type}</span>}
                             {group.media_type && <span className="proc-ctype-chip media">{group.media_type}</span>}
                             {splitCsv(group.content_format).map(x => <span className="proc-ctype-chip fmt" key={x}>{x}</span>)}
                         </>
@@ -177,6 +183,7 @@ const procHead = (showAds = false) => (
         <span>KOL NAME</span><span>PRODUCT</span>
         {showAds && <span>TARGET</span>}
         {showAds && <span>CONTENT TYPE</span>}
+        {showAds && <span>CONTENT FORMAT</span>}
         <span>PLATFORM</span><span>CONTENT DRAFT</span>
         <span>POST</span><span>POST DATE</span><span>GENCODE</span>
         <span>ID POST</span><span>CODE EXPIRE IN</span><span className="ta-c">จัดการ</span>
