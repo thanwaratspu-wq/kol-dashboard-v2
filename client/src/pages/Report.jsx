@@ -27,10 +27,15 @@ export default function Report() {
     const c = d.campaign;
     const kolRows = plat ? d.kols.filter(k => k.platform === plat) : d.kols;
 
-    // จัดอันดับ Performance — คะแนน: Good(CPM/CPE ผ่านเกณฑ์) > reach > ลงงาน > ยิงแอด, ตัดเสมอด้วย CPM ต่ำสุด/ค่าใช้จ่ายต่ำสุด
-    const perfScore = k => (k.performance === 'Good' ? 100000 : 0) + (Number(k.reach) || 0) / 100 + (k.posted ? 500 : 0) + (k.boosted ? 200 : 0);
+    // จัดอันดับจากคะแนน Performance ที่ server คิดมาให้ (สูตรเดียวกับ Top Influencer หน้า Dashboard)
+    // คนที่กรอกผลงานแล้วขึ้นก่อนคนที่ยังไม่กรอกเสมอ — เพราะยังไม่มีอะไรให้ตัดสิน ไม่ใช่ว่าทำได้แย่
+    // เสมอกันตัดด้วย engagement รวม แล้วค่อยยอดวิว
     const kolRank = [...kolRows]
-        .sort((a, b) => perfScore(b) - perfScore(a) || ((a.cpm || Infinity) - (b.cpm || Infinity)) || (a.cost - b.cost))
+        .sort((a, b) =>
+            (b.measured === true) - (a.measured === true)
+            || ((b.score ?? -1) - (a.score ?? -1))
+            || (b.engagement - a.engagement)
+            || (b.views - a.views))
         .slice(0, 10);
     const medal = i => ['🥇', '🥈', '🥉'][i] || `#${i + 1}`;
     const fmtV = n => { n = Number(n) || 0; if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K'; return String(n); };
@@ -196,7 +201,7 @@ export default function Report() {
 
             {/* อันดับ Performance ดีที่สุด (ราย KOL) */}
             <div className="panel">
-                <div className="panel-head"><h3>🏆 อันดับ Performance ดีที่สุด <span className="dash-section-sub">เรียงจากผลงานดีสุดในแคมเปญ</span></h3></div>
+                <div className="panel-head"><h3>🏆 อันดับ Performance ดีที่สุด <span className="dash-section-sub">คะแนนจาก ER 35% · ยอดวิว 25% · CPM 20% · CPE 20% เทียบกันเองในแคมเปญ</span></h3></div>
                 <div className="rank-grid">
                     <div className="rank-col">
                         <div className="rank-col-title">👤 Top KOL</div>
@@ -205,7 +210,13 @@ export default function Report() {
                                 <span className={'rank-no r' + (i + 1)}>{medal(i)}</span>
                                 <div className="rank-main">
                                     <b>{k.name}</b>
-                                    <span className="rank-sub">{k.platform || '—'} · {k.performance === 'Good' ? '⭐ Good' : (k.posted ? 'ลงงานแล้ว' : 'ยังไม่ลงงาน')}{k.boosted ? ' · ยิงแอดแล้ว' : ''}</span>
+                                    <span className="rank-sub">
+                                        {k.platform || '—'} ·{' '}
+                                        {k.measured
+                                            ? <b className="rank-score" title="คะแนนเทียบกับคนอื่นในแคมเปญนี้ เต็ม 100">{k.score} คะแนน</b>
+                                            : <span className="rank-nodata" title="ยังไม่ได้กรอกผลงานคอนเทนต์ จึงยังไม่มีคะแนน — ไม่ได้แปลว่าทำได้แย่">ยังไม่กรอกผลงาน</span>}
+                                        {k.boosted ? ' · ยิงแอดแล้ว' : ''}
+                                    </span>
                                 </div>
                                 <div className="rank-stats">
                                     <span><i>views</i><b>{fmtV(k.views)}</b></span>

@@ -481,6 +481,8 @@ a { text-decoration: none; color: inherit; }
 .rank-main { flex: 0 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .rank-main b { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
 .rank-sub { font-size: 11px; color: var(--muted); }
+.rank-score { color: var(--mint-dark); font-weight: 800; cursor: help; }
+.rank-nodata { color: #9aa5a2; font-style: italic; cursor: help; }
 .rank-metric { flex-shrink: 0; font-weight: 800; font-size: 13.5px; color: var(--mint-dark); background: var(--bg-soft); padding: 5px 12px; border-radius: 9px; }
 /* ตัวเลขผลงานรายคน ด้านขวาของชื่อ ในการ์ดอันดับ Top KOL */
 /* margin-inline-end: auto ดันที่ว่างไปไว้ทางขวา ตัวเลขจึงอยู่ชิดชื่อ KOL */

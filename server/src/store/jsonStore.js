@@ -1349,6 +1349,41 @@ const reports = {
             };
         });
 
+        // ---------- คะแนน Performance ต่อคน (สูตรเดียวกับ Top Influencer หน้า Dashboard) ----------
+        // ให้น้ำหนัก ER มากสุด เพราะวัดว่าคนดูมีส่วนร่วมจริงแค่ไหน ไม่ใช่แค่ยอดวิวเยอะ
+        // เทียบกันเองภายในแคมเปญ (ดีสุดในกลุ่ม = เต็ม, แย่สุด = 0) ไม่ได้เทียบกับเกณฑ์ตายตัว
+        const RW = { er: 0.35, views: 0.25, cpm: 0.20, cpe: 0.20 };
+        // "มีข้อมูล" = กรอกยอดวิว หรือ engagement มาแล้วอย่างน้อยอย่างหนึ่ง
+        // คนที่ยังไม่กรอกอะไรเลยจะไม่มีคะแนน และตกไปอยู่ท้ายรายการเสมอ
+        rows.forEach(r => { r.measured = r.views > 0 || r.engagement > 0; });
+        const rated = rows.filter(r => r.measured);
+        if (rated.length) {
+            const span = (arr, f) => {
+                const v = arr.map(f);
+                return { min: Math.min(...v), max: Math.max(...v) };
+            };
+            const nrm = (val, r, lowerIsBetter) => {
+                if (r.max === r.min) return 1;   // ทุกคนเท่ากัน แกนนี้ไม่ช่วยตัดสิน
+                const t = (val - r.min) / (r.max - r.min);
+                return lowerIsBetter ? 1 - t : t;
+            };
+            const rEr = span(rated, r => r.er);
+            const rVw = span(rated, r => r.views);
+            const withCpm = rated.filter(r => r.cpm > 0);
+            const withCpe = rated.filter(r => r.cpe > 0);
+            const rCpm = withCpm.length ? span(withCpm, r => r.cpm) : { min: 0, max: 0 };
+            const rCpe = withCpe.length ? span(withCpe, r => r.cpe) : { min: 0, max: 0 };
+            rows.forEach(r => {
+                if (!r.measured) { r.score = null; return; }
+                // ยังไม่มี CPM/CPE (เพราะยังไม่มีวิว/engagement) = แย่สุดของแกนนั้น ไม่ใช่ดีสุด
+                const nCpm = r.cpm > 0 ? nrm(r.cpm, rCpm, true) : 0;
+                const nCpe = r.cpe > 0 ? nrm(r.cpe, rCpe, true) : 0;
+                r.score = Number(((RW.er * nrm(r.er, rEr) + RW.views * nrm(r.views, rVw)
+                    + RW.cpm * nCpm + RW.cpe * nCpe) * 100).toFixed(1));
+            });
+        } else {
+            rows.forEach(r => { r.score = null; });
+        }
         const kols = rows.length;
         const kol_cost = rows.reduce((a, r) => a + r.cost, 0);
         const ads_cost = rows.reduce((a, r) => a + r.ad_spend, 0);
