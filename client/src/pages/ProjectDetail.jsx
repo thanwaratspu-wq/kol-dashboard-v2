@@ -9,6 +9,7 @@ import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
 import { unreadCount } from '../components/MessageBox.jsx';
 import ChatDock from '../components/ChatDock.jsx';
 import { productLabel, asTargetArray } from '../data/products.js';
+import { groupPlatforms } from '../data/adGroups.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 import { fmtRange } from '../utils/date.js';
 
@@ -84,7 +85,7 @@ const SUB_PLATFORMS = ['TikTok', 'Instagram', 'Facebook', 'Lemon8', 'YouTube', '
 // modal เพิ่ม KOL เข้าลิสต์เอง (ฝั่งทีม)
 function AddSubmissionModal({ projectId, products = [], groups = [], onClose, onAdded }) {
     // มีกลุ่มเดียวก็เลือกให้เลย ไม่ต้องกดซ้ำ
-    const [f, setF] = useState({ group_key: groups.length === 1 ? groups[0].key : '', account_name: '', platform: groups.length === 1 ? (groups[0].platform || 'TikTok') : 'TikTok', product: '', agency: '', budget: '', link_account: '' });
+    const [f, setF] = useState({ group_key: groups.length === 1 ? groups[0].key : '', account_name: '', platform: groups.length === 1 ? (groupPlatforms(groups[0])[0] || 'TikTok') : 'TikTok', product: '', agency: '', budget: '', link_account: '' });
     const g = groups.find(x => x.key === f.group_key) || null;
     // สินค้าให้เลือกเฉพาะของกลุ่มที่เลือก — ถ้ายังไม่เลือกกลุ่มค่อยใช้สินค้าทั้งแคมเปญ
     const productOpts = (g && (g.products || []).length) ? g.products : products;
@@ -98,7 +99,7 @@ function AddSubmissionModal({ projectId, products = [], groups = [], onClose, on
             return {
                 ...st,
                 group_key: key,
-                platform: (grp && grp.platform) || st.platform,
+                platform: (grp && groupPlatforms(grp)[0]) || st.platform,
                 product: allow ? cur.filter(c => allow.includes(c)).join(',') : st.product
             };
         });
@@ -134,7 +135,7 @@ function AddSubmissionModal({ projectId, products = [], groups = [], onClose, on
                                 {groups.map((grp, gi) => (
                                     <option key={grp.key} value={grp.key}>
                                         {'กลุ่มที่ ' + (gi + 1)}
-                                        {grp.platform ? ' · ' + grp.platform : ''}
+                                        {groupPlatforms(grp).length ? ' · ' + groupPlatforms(grp).join(', ') : ''}
                                         {(grp.products || []).length ? ' · ' + grp.products.join(', ') : ''}
                                     </option>
                                 ))}
@@ -429,7 +430,7 @@ export default function ProjectDetail() {
     // สินค้าที่เลือกได้ = เฉพาะสินค้าของ Platform ที่รับผิดชอบ (เลือก Platform ก่อน)
     const availProducts = productsForPlatforms(newLinkPlatforms);
     // Platform ที่โปรเจคนี้มี (ให้เลือกได้เฉพาะที่เจ้าของโปรเจคตั้งไว้)
-    const projectPlatforms = [...new Set((project.ad_groups || []).map(g => g.platform).filter(Boolean))];
+    const projectPlatforms = [...new Set((project.ad_groups || []).flatMap(g => groupPlatforms(g)))];
 
     // แถวในตารางรายชื่อ KOL (action ต่างกันตามกลุ่ม)
     const subRow = (s) => (

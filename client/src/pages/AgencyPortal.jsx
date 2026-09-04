@@ -9,6 +9,7 @@ import Avatar from '../components/Avatar.jsx';
 import OnProcessTable from '../components/OnProcessTable.jsx';
 import ProductChips, { ProductSummary } from '../components/ProductChips.jsx';
 import { productLabel } from '../data/products.js';
+import { groupPlatforms } from '../data/adGroups.js';
 import { tabBadges, markSeen, seedDraftsSeen } from '../utils/tabUpdates.js';
 
 // ค่าที่เก็บเป็นสตริงคั่นด้วย , (เช่น content_format) → แยกเป็นรายตัว
@@ -174,7 +175,7 @@ function SubItem({ s, onEdit }) {
 // section 1 กลุ่มสินค้า — โชว์ความต้องการ (Platform/Tier/จำนวน) + ฟอร์มใส่ชื่อ + ลิสต์ของกลุ่ม
 function GroupSection({ token, group, gi, subs, onReload, onEdit, onDelete, agencyName, platformBudgets = {} }) {
     const groupProducts = group.products || [];
-    const groupPlatforms = [...new Set((group.allocations || []).map(a => a.platform).filter(Boolean))];
+    const groupPlats = groupPlatforms(group);
     const groupTiers = [...new Set((group.allocations || []).map(a => a.tier).filter(Boolean))];
     // API ส่งมาแบบใหม่สุดขึ้นก่อน — กลับด้านให้คนที่บันทึกทีหลังต่อท้ายลงมาเรื่อย ๆ
     const groupSubs = subs.filter(s => s.group_key === group.key)
@@ -182,7 +183,7 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, onDelete, agen
     const total = group.kol_count || 0;
 
     // Budget ของกลุ่มนี้ (สำหรับปุ่มหารเฉลี่ยแบบเหมาราคา) — ใช้งบต่อกลุ่ม, ถ้าข้อมูลเดิมไม่มีค่อย fallback งบต่อ Platform
-    const groupPlatform = group.platform || groupPlatforms[0] || null;
+    const groupPlatform = groupPlats[0] || null;
     const groupBudget = (group.budget != null && group.budget !== '')
         ? (Number(group.budget) || 0)
         : (groupPlatform ? (Number(platformBudgets[groupPlatform]) || 0) : 0);
@@ -279,7 +280,7 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, onDelete, agen
             {group.brief && <a className="brief-link ag-group-brief" href={group.brief} target="_blank" rel="noreferrer"><Icon name="eye" size={14} /> เปิดบรีฟกลุ่มนี้</a>}
             {(group.allocations || []).length > 0 && (
                 <div className="ag-group-allocs">
-                    {group.allocations.map((a, ai) => <span className="chip-alloc" key={ai}>{a.platform} · {a.tier} · {a.kols} คน</span>)}
+                    {group.allocations.map((a, ai) => <span className="chip-alloc" key={ai}>{a.tier} · {a.kols} คน</span>)}
                 </div>
             )}
 
@@ -311,7 +312,7 @@ function GroupSection({ token, group, gi, subs, onReload, onEdit, onDelete, agen
                     {rows.map((en, i) => (
                         <div className="ag-add-row" key={i}>
                             <div className="atr-name"><span className="atr-num">{groupSubs.length + i + 1}</span><input value={en.account_name} onChange={e => upRow(i, 'account_name', e.target.value)} placeholder="ชื่อ Account" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveRow(i); } }} /></div>
-                            <select value={en.platform} onChange={e => upRow(i, 'platform', e.target.value)}>{(groupPlatforms.length ? groupPlatforms : PLATFORMS).map(p => <option key={p} value={p}>{p}</option>)}</select>
+                            <select value={en.platform} onChange={e => upRow(i, 'platform', e.target.value)}>{(groupPlats.length ? groupPlats : PLATFORMS).map(p => <option key={p} value={p}>{p}</option>)}</select>
                             <input type="number" min="0" value={en.followers} onChange={e => upRow(i, 'followers', e.target.value)} placeholder="ยอดฟอล" />
                             <ProductMultiSelect value={en.product} options={groupProducts} onChange={v => upRow(i, 'product', v)} />
                             {agencyName

@@ -5,6 +5,7 @@ import DatePicker from './DatePicker.jsx';
 import { productsByBrand, productLabel, targetsForProducts, asTargetArray } from '../data/products.js';
 import { CONTENT_FORMATS } from '../data/contentFormats.js';
 import MultiSelect from './MultiSelect.jsx';
+import { groupPlatforms, splitCsv } from '../data/adGroups.js';
 
 const BRANDS = ["Jula's Herb", 'Code Lab', 'Jdent', 'Jarvit', 'Beauterry', 'Jernis', 'Dermiq', 'Minimii', 'Any Skin'];
 // รายชื่อทีมงานที่รับเป็น Owner ของแคมเปญ — แก้/เพิ่มชื่อตรงนี้ได้เลย
@@ -72,8 +73,8 @@ function migAllocations(g) {
     if (g.tier && g.kol_count) return [{ tier: g.tier, kols: g.kol_count }];
     return [emptyAlloc()];
 }
-// platform ของกลุ่ม (ข้อมูลเดิม: จาก g.platform หรือ allocation แถวแรก)
-const migPlatform = g => g.platform || (Array.isArray(g.allocations) && g.allocations[0] ? g.allocations[0].platform : '') || '';
+// Platform ของกลุ่ม — ในฟอร์มเก็บเป็นสตริงคั่นคอมมา (MultiSelect ใช้รูปแบบนี้)
+const migPlatform = g => groupPlatforms(g).join(',');
 function initGroups(editing) {
     if (Array.isArray(editing?.ad_groups) && editing.ad_groups.length) {
         // ข้อมูลเดิมงบเก็บต่อ Platform — ถ้ากลุ่มยังไม่มี budget และ Platform นั้นมีกลุ่มเดียว ให้สืบค่าจากงบ Platform
@@ -119,7 +120,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
     const [adGroups, setAdGroups] = useState(() => initGroups(editing));
     // Platform ไม่ใช่ state แยกอีกแล้ว — อ่านจากกลุ่มสินค้าที่มีอยู่
     // (บรีฟหลัก/validate/ตอนบันทึก ยังใช้ตัวแปรชื่อเดิม จึงไม่ต้องแก้ที่อื่น)
-    const platforms = [...new Set(adGroups.map(g => g.platform).filter(Boolean))];
+    const platforms = [...new Set(adGroups.flatMap(g => splitCsv(g.platform)))];
     const [briefFile, setBriefFile] = useState(null);
     const [productBriefs, setProductBriefs] = useState(() => editing?.product_briefs || {}); // { code: { link, file } }
     const [pbFiles, setPbFiles] = useState({}); // code -> File (รออัปโหลดหลังบันทึก)
@@ -190,8 +191,10 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
         try {
             // เก็บเฉพาะกลุ่มที่มีสินค้า + ทำ products แบบ flat ไว้ให้หน้าอื่นใช้ (เช่น Agency)
             const groups = adGroups.filter(g => g.products.length && g.platform).map(g => {
-                const allocations = g.allocations.filter(a => a.tier).map(a => ({ platform: g.platform, tier: a.tier, kols: Number(a.kols) || 0 }));
-                return { key: g.key || genKey(), platform: g.platform, concept: g.concept || null, target: asTargetArray(g.target), content_type: g.content_type || null, media_type: g.media_type || null, content_format: g.content_format || null, brief: (g.brief && g.brief.trim()) ? g.brief.trim() : null, products: g.products, allocations, kol_count: allocations.reduce((s, a) => s + a.kols, 0), budget: Number(String(g.budget).replace(/\D/g, '')) || 0, code_expire: Number(g.code_expire) || 60 };
+                const plats = splitCsv(g.platform);
+                // platform (เดี่ยว) คงไว้ให้โค้ดเก่าอ่านได้ ตัวจริงคือ platforms
+                const allocations = g.allocations.filter(a => a.tier).map(a => ({ platform: plats[0] || null, tier: a.tier, kols: Number(a.kols) || 0 }));
+                return { key: g.key || genKey(), platform: plats[0] || null, platforms: plats, concept: g.concept || null, target: asTargetArray(g.target), content_type: g.content_type || null, media_type: g.media_type || null, content_format: g.content_format || null, brief: (g.brief && g.brief.trim()) ? g.brief.trim() : null, products: g.products, allocations, kol_count: allocations.reduce((s, a) => s + a.kols, 0), budget: Number(String(g.budget).replace(/\D/g, '')) || 0, code_expire: Number(g.code_expire) || 60 };
             });
             const flatProducts = groups.flatMap(g => g.products);
             const totalKol = groups.reduce((s, g) => s + g.kol_count, 0); // KOL เป้าหมายรวม = ผลรวมทุกกลุ่ม
@@ -210,7 +213,12 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
             });
             // งบต่อ Platform = ผลรวมงบของกลุ่มใน Platform นั้น (ไว้ให้หน้าอื่นที่ยังดูแบบต่อ Platform ใช้)
             const platform_budgets = {};
-            groups.forEach(g => { platform_budgets[g.platform] = (platform_budgets[g.platform] || 0) + (Number(g.budget) || 0); });
+            groups.forEach(g => {
+                const plats = g.platforms.length ? g.platforms : [g.platform].filter(Boolean);
+                if (!plats.length) return;
+                const share = (Number(g.budget) || 0) / plats.length;   // ลงหลาย Platform = หารเท่า ๆ กัน
+                plats.forEach(pf => { platform_budgets[pf] = (platform_budgets[pf] || 0) + share; });
+            });
             const totalBudget = groups.reduce((s, g) => s + (Number(g.budget) || 0), 0); // งบรวม = ผลรวมทุกกลุ่ม
             const body = {
                 name: form.name,
@@ -331,10 +339,11 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
                                 <div className="adgroup-block" key={g.key || i}>
                                     <div className="adgroup-head">
                                         <span className="adgroup-no">กลุ่มที่ {i + 1}</span>
-                                        <select className={'adgroup-platform' + (g.platform ? '' : ' empty')} value={g.platform} onChange={e => setGroupField(i, 'platform', e.target.value)}>
-                                            <option value="">— เลือก Platform —</option>
-                                            {GROUP_PLATFORMS.map(pf => <option key={pf} value={pf}>{pf}</option>)}
-                                        </select>
+                                        <div className={'adgroup-platform' + (g.platform ? '' : ' empty')}>
+                                            <MultiSelect value={g.platform} options={GROUP_PLATFORMS}
+                                                onChange={v => setGroupField(i, 'platform', v)}
+                                                placeholder="— เลือก Platform —" itemName="Platform" />
+                                        </div>
                                         <input className="adgroup-concept" value={g.concept} placeholder="Concept ของกลุ่ม..."
                                             onChange={e => setGroupField(i, 'concept', e.target.value)} />
                                         <button type="button" className="adgroup-rm" title="ลบกลุ่ม" onClick={() => removeGroup(i)}>×</button>

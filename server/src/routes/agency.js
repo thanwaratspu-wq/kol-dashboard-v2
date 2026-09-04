@@ -79,6 +79,7 @@ function scopeSubs(subs, link) {
 // platform ของกลุ่ม (รองรับข้อมูลเดิมที่เก็บ platform ไว้ใน allocation)
 function groupPlatforms(g) {
     const set = new Set();
+    if (Array.isArray(g.platforms)) g.platforms.forEach(p => { if (p) set.add(p); });
     if (g.platform) set.add(g.platform);
     (g.allocations || []).forEach(a => { if (a.platform) set.add(a.platform); });
     return [...set];
