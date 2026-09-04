@@ -19,6 +19,26 @@ const dayLabel = at => {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 };
 
+// รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
+// จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
+function ChatImage({ src, fallbackSrc, name }) {
+    const [failed, setFailed] = useState(false);
+    const [url, setUrl] = useState(src);
+    useEffect(() => { setUrl(src); setFailed(false); }, [src]);
+    // ถ้ารูปในเครื่องใช้ไม่ได้ (เช่นถูกคืนหน่วยความจำไปแล้ว) ให้ลองเส้น server ก่อน
+    const onErr = () => {
+        if (fallbackSrc && url !== fallbackSrc) setUrl(fallbackSrc);
+        else setFailed(true);
+    };
+    return (
+        <a className="msgbox-img" href={fallbackSrc || url} target="_blank" rel="noreferrer" title={name}>
+            {failed
+                ? <span className="msgbox-imgfail">🖼 {name} — กดเพื่อเปิดรูป</span>
+                : <img src={url} alt={name} onError={onErr} />}
+        </a>
+    );
+}
+
 /**
  * ห้องแชททีม ↔ เอเจนซี่ — หน้าตาเดียวกันทั้งสองฝั่ง ต่างแค่ว่า "ฉัน" คือใคร
  * props:
@@ -30,19 +50,6 @@ const dayLabel = at => {
  *   title, subtitle
  *   onUnread(n) = แจ้งจำนวนที่ยังไม่ได้อ่านกลับไปให้หน้าแม่ (ไว้ทำป้ายตัวเลข)
  */
-// รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
-// จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
-function ChatImage({ src, name }) {
-    const [failed, setFailed] = useState(false);
-    return (
-        <a className="msgbox-img" href={src} target="_blank" rel="noreferrer" title={name}>
-            {failed
-                ? <span className="msgbox-imgfail">🖼 {name} — กดเพื่อเปิดรูป</span>
-                : <img src={src} alt={name} onError={() => setFailed(true)} />}
-        </a>
-    );
-}
-
 export default function MessageBox({ base, imageBase, streamPath, side, title, subtitle, onUnread }) {
     // แท็ก <img> แนบ Authorization header ไม่ได้ เส้นรูปจึงต้องเป็นเส้นที่ไม่ต้องล็อกอิน
     // ใช้เส้นของลิงก์เอเจนซี่ (กันด้วย token เหมือนช่อง SSE) — ฝั่งทีมก็รู้ token นี้อยู่แล้ว
@@ -56,6 +63,7 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     const threadRef = useRef(null);
     const stickBottom = useRef(true);
     const loadRef = useRef(null);
+    const localImgs = useRef(new Map());   // msgId -> object URL ของไฟล์ในเครื่อง (รูปที่เราเพิ่งส่ง)
 
     const load = useCallback(async (markRead) => {
         try {
@@ -90,6 +98,12 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
         return () => es.close();
     }, [streamPath]);
 
+    // ปิดกล่องแล้วคืนหน่วยความจำของรูปที่ทำ preview ไว้
+    useEffect(() => {
+        const map = localImgs.current;
+        return () => { map.forEach(url => URL.revokeObjectURL(url)); map.clear(); };
+    }, []);
+
     // เลื่อนลงล่างสุดเมื่อมีข้อความใหม่ — แต่ไม่แย่งถ้าคนกำลังอ่านย้อนอยู่
     useEffect(() => {
         const el = threadRef.current;
@@ -114,6 +128,9 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                 const res = await fetch(`/api${base}`, { method: 'POST', headers: authHeader(), body: fd });
                 const j = await res.json().catch(() => null);
                 if (!res.ok) throw new Error((j && j.message) || 'ส่งไม่สำเร็จ');
+                // คนส่งมีไฟล์อยู่ในเครื่องอยู่แล้ว ไม่ต้องรอโหลดกลับมาจาก server
+                // ให้แสดงจากไฟล์ในเครื่องเลย รูปจึงขึ้นทันทีที่บับเบิลขึ้น
+                if (j && j.data && j.data.id) localImgs.current.set(j.data.id, URL.createObjectURL(img));
             } else {
                 await api(base, { method: 'POST', body: { text: text.trim() } });
             }
@@ -146,7 +163,10 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                                 <span className="msgbox-who">{mine ? 'เรา' : m.by}</span>
                                 <div className="msgbox-bubble">
                                     {m.image && (
-                                        <ChatImage src={`/api${imgBase}/${m.id}/image`} name={m.image.original} />
+                                        <ChatImage
+                                            src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/image`}
+                                            fallbackSrc={`/api${imgBase}/${m.id}/image`}
+                                            name={m.image.original} />
                                     )}
                                     {m.text && <span className="msgbox-text">{m.text}</span>}
                                 </div>
