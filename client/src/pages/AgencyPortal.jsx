@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import ProductMultiSelect from '../components/ProductMultiSelect.jsx';
+import AgencyReports from '../components/AgencyReports.jsx';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Icon from '../components/Icon.jsx';
@@ -626,6 +627,8 @@ export default function AgencyPortal() {
                     </div>
                 )}
             </div>
+
+            <AgencyReports token={token} reports={info.reports || []} onReload={load} />
 
             {editSub && (
                 <EditSubmissionModal

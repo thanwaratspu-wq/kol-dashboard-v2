@@ -1954,3 +1954,64 @@ a { text-decoration: none; color: inherit; }
     /* ปุ่มพับ/ดูเพิ่ม ไม่มีความหมายบนกระดาษ */
     .prod-codes-more, .prodchip-more { display: none !important; }
 }
+
+/* ============ กล่องส่ง Report ของเอเจนซี่ ============ */
+.ag-report { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-top: 18px; }
+.ag-report-head { margin-bottom: 14px; }
+.ag-report-head h3 { margin: 0; font-size: 15.5px; }
+.ag-report-sub { display: block; margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+/* พื้นที่ลากไฟล์มาวาง */
+.ag-report-drop {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 24px 16px; border: 2px dashed var(--border); border-radius: 14px;
+    background: var(--bg-soft); color: var(--muted); cursor: pointer; text-align: center;
+    transition: border-color .15s, background .15s, color .15s;
+}
+.ag-report-drop:hover, .ag-report-drop.over { border-color: var(--mint); background: #edfbf4; color: var(--mint-dark); }
+.ag-report-drop.busy { cursor: default; opacity: .7; }
+.ag-report-drop span { font-size: 13px; font-weight: 700; }
+.ag-report-drop small { font-size: 11px; }
+.ag-report-linkbtn {
+    width: 100%; margin-top: 8px; padding: 9px; border: 1px solid var(--border); border-radius: 11px;
+    background: #fff; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.ag-report-linkbtn:hover:not(:disabled) { border-color: var(--mint); color: var(--mint-dark); }
+.ag-report-linkform { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: var(--bg-soft); }
+.ag-report-linkbtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+/* รายการที่ส่งไปแล้ว */
+.ag-report-list { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
+.ag-report-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 10px; }
+.ag-report-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 12px; background: #fafdfb;
+}
+.ag-report-open {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+    border: none; background: none; padding: 0; cursor: pointer; text-align: start;
+    font-size: 12.5px; font-weight: 700; color: var(--text);
+}
+.ag-report-open:hover .ag-report-name { color: var(--mint-dark); text-decoration: underline; }
+.ag-report-ico { flex-shrink: 0; font-size: 14px; }
+.ag-report-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ag-report-meta { flex-shrink: 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ag-report-del {
+    flex-shrink: 0; width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; cursor: pointer; font-size: 12px; line-height: 1; display: grid; place-items: center;
+}
+.ag-report-del:hover:not(:disabled) { border-color: var(--danger); background: #fdecef; }
+@media (max-width: 600px) {
+    .ag-report-item { flex-wrap: wrap; }
+    .ag-report-open { flex-basis: 100%; }
+}
+
+/* ป้าย/รายการ Report ในแผงลิงก์เอเจนซี่ (ฝั่งทีม) */
+.alp-sv-chip.rep { background: #f2f5f4; color: #8a9a93; }
+.alp-sv-chip.rep.has { background: #e7f8f0; color: #0f7a52; }
+.alp-reports { display: flex; flex-wrap: wrap; gap: 6px; }
+.alp-report {
+    display: inline-flex; align-items: center; gap: 5px; max-width: 260px;
+    padding: 4px 10px; border: 1px solid var(--border); border-radius: 9px; background: #fff;
+    color: var(--mint-dark); font-size: 11.5px; font-weight: 700; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none;
+}
+.alp-report:hover { border-color: var(--mint); background: var(--bg-soft); }

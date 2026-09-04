@@ -359,6 +359,9 @@ function enrichProject(p) {
     };
 }
 
+// id ของไฟล์ report — สั้นแต่เดาไม่ได้ ใช้อ้างอิงตอนเปิด/ลบ
+const genReportId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
 const projects = {
     // scopeTeamId = null (admin เห็นหมด) หรือเลข team_id (member เห็นเฉพาะทีมตัวเอง)
     async list(scopeTeamId = null) {
@@ -472,6 +475,43 @@ const projects = {
         persist();
         return clone(link);
     },
+    // ---------- ไฟล์/ลิงก์ Report ที่เอเจนซี่ส่งเข้ามา (เก็บผูกกับลิงก์ของแต่ละเจ้า) ----------
+    // meta = { kind: "file"|"link", original, filename?, size?, url?, note?, uploaded_at }
+    async addAgencyReport(id, token, meta) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link) return null;
+        if (!Array.isArray(link.reports)) link.reports = [];
+        const row = { id: genReportId(), uploaded_at: now(), ...meta };
+        link.reports.push(row);
+        persist();
+        return clone(row);
+    },
+    async listAgencyReports(id, token) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return [];
+        const link = (p.agency_links || []).find(l => l.token === token);
+        return link && Array.isArray(link.reports) ? link.reports.map(clone) : [];
+    },
+    async getAgencyReport(id, token, reportId) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        const r = link && (link.reports || []).find(x => x.id === reportId);
+        return r ? clone(r) : null;
+    },
+    async removeAgencyReport(id, token, reportId) {
+        const p = db.projects.find(p => p.id === Number(id));
+        if (!p) return null;
+        const link = (p.agency_links || []).find(l => l.token === token);
+        if (!link || !Array.isArray(link.reports)) return null;
+        const i = link.reports.findIndex(x => x.id === reportId);
+        if (i < 0) return null;
+        const [gone] = link.reports.splice(i, 1);
+        persist();
+        return clone(gone);
+    },
     async listAgencyLinks(id) {
         const p = db.projects.find(p => p.id === Number(id));
         return p && Array.isArray(p.agency_links) ? p.agency_links.map(clone) : [];
@@ -489,11 +529,11 @@ const projects = {
         for (const p of db.projects) {
             if (Array.isArray(p.agency_links)) {
                 const link = p.agency_links.find(l => l.token === token);
-                if (link) return { project: clone(p), link: { token: link.token, name: link.name, products: link.products || [], platforms: link.platforms || [], kol_count: link.kol_count || 0, scoped: true } };
+                if (link) return { project: clone(p), link: { token: link.token, name: link.name, products: link.products || [], platforms: link.platforms || [], kol_count: link.kol_count || 0, reports: clone(link.reports || []), scoped: true } };
             }
         }
         const p = db.projects.find(p => p.share_token === token);   // ลิงก์รวมเดิม → เห็นทั้งหมด (backward compat)
-        if (p) return { project: clone(p), link: { token, name: null, products: [], platforms: [], kol_count: 0, scoped: false } };
+        if (p) return { project: clone(p), link: { token, name: null, products: [], platforms: [], kol_count: 0, reports: [], scoped: false } };
         return null;
     },
     // บันทึกไฟล์บรีฟ

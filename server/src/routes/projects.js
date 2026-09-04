@@ -389,4 +389,17 @@ router.post('/:id/submissions/:subId/fetch-tiktok', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// GET /api/projects/:id/agency-reports/:token/:reportId/file — ทีมเปิดไฟล์ Report ที่เอเจนซี่ส่งมา
+router.get('/:id/agency-reports/:token/:reportId/file', async (req, res, next) => {
+    try {
+        const check = await canEditProject(req, req.params.id);
+        if (!check.ok) return res.status(check.code).json({ status: 'error', message: check.message });
+        const r = await store.projects.getAgencyReport(req.params.id, req.params.token, req.params.reportId);
+        if (!r || r.kind !== 'file') return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์' });
+        const fp = path.join(__dirname, '..', '..', 'uploads', r.filename);
+        if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(fp);
+    } catch (err) { next(err); }
+});
+
 module.exports = router;

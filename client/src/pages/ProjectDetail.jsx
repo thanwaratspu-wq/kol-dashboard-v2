@@ -222,7 +222,8 @@ function ScopeProducts({ codes, limit = 6 }) {
 }
 
 // แถบลิงก์เอเจนซี่ 1 อัน — ย่อเป็นบรรทัดเดียว (ชื่อ + สรุปขอบเขต + ปุ่ม) กด ▾ เพื่อดู URL + สินค้าเต็ม
-function AgencyLinkRow({ l, url, copied, onCopy, onDelete }) {
+function AgencyLinkRow({ l, url, copied, onCopy, onDelete, projectId }) {
+    const reports = l.reports || [];
     const [open, setOpen] = useState(false);
     const prods = l.products || [];
     const plats = l.platforms || [];
@@ -235,6 +236,9 @@ function AgencyLinkRow({ l, url, copied, onCopy, onDelete }) {
                     {l.kol_count > 0 && <span className="alp-sv-chip kol">⭐ {l.kol_count} KOL</span>}
                     <span className="alp-sv-chip prod">{prods.length ? `${prods.length} สินค้า` : 'ทุกสินค้า'}</span>
                     {plats.length ? plats.map(p => <span className="alp-sv-chip plat" key={p}>{p}</span>) : <span className="alp-sv-chip plat">ทุก Platform</span>}
+                    <span className={'alp-sv-chip rep' + (reports.length ? ' has' : '')} title="Report ที่เอเจนซี่ส่งเข้ามา">
+                        📊 {reports.length ? `${reports.length} ไฟล์` : 'ยังไม่ส่ง'}
+                    </span>
                 </div>
                 <button className="btn-ghost" onClick={onCopy}>{copied ? '✓ คัดลอกแล้ว' : 'คัดลอก'}</button>
                 <a className="btn-ghost" href={url} target="_blank" rel="noreferrer">เปิดดู</a>
@@ -249,6 +253,19 @@ function AgencyLinkRow({ l, url, copied, onCopy, onDelete }) {
                             <ScopeProducts codes={prods} limit={12} />
                         </div>
                     )}
+                    <div className="alp-scope-view">
+                        <span className="alp-sv-lbl">Report:</span>
+                        {reports.length === 0 ? <span className="muted">ยังไม่ได้ส่ง</span> : (
+                            <div className="alp-reports">
+                                {reports.map(r => (r.kind === 'link'
+                                    ? <a className="alp-report" key={r.id} href={r.url} target="_blank" rel="noreferrer">🔗 {r.original}</a>
+                                    : <button type="button" className="alp-report" key={r.id}
+                                        onClick={() => openFile(`/projects/${projectId}/agency-reports/${l.token}/${r.id}/file`).catch(e => alert(e.message))}>
+                                        📄 {r.original}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
@@ -676,6 +693,7 @@ export default function ProjectDetail() {
                                         copied={copiedToken === l.token}
                                         onCopy={() => copyLink(l.token)}
                                         onDelete={() => deleteLink(l.token)}
+                                        projectId={id}
                                     />
                                 ))}
                             </div>

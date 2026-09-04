@@ -2,9 +2,26 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const store = require('../store');
+const multer = require('multer');
 
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 const router = express.Router();
+
+// ---------- ไฟล์ Report ที่เอเจนซี่อัปเข้ามา ----------
+const REPORT_EXT = ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.ppt', '.pptx', '.xls', '.xlsx', '.doc', '.docx', '.csv'];
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const reportUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+        // ตั้งชื่อไฟล์เดาไม่ได้ ป้องกันคนสุ่มเปิดไฟล์ของเจ้าอื่น
+        filename: (req, file, cb) => cb(null, `report_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname)}`)
+    }),
+    limits: { fileSize: 25 * 1024 * 1024 },   // 25MB — เผื่อเด็คสไลด์
+    fileFilter: (req, file, cb) => {
+        const ok = REPORT_EXT.includes(path.extname(file.originalname).toLowerCase());
+        cb(ok ? null : new Error('รองรับเฉพาะ PDF / รูป / PowerPoint / Excel / Word / CSV'), ok);
+    }
+});
 
 // บรีฟต่อสินค้า เฉพาะที่เอเจนซี่เจ้านี้รับผิดชอบ (ตามขอบเขตสินค้าของลิงก์)
 function scopedProductBriefs(project, link) {
@@ -86,7 +103,8 @@ router.get('/:token', async (req, res, next) => {
                 product_briefs: scopedProductBriefs(project, link),   // บรีฟต่อสินค้า เฉพาะของเจ้านี้
                 platform_briefs: scopedPlatformBriefs(project, link), // บรีฟหลักต่อ Platform เฉพาะของเจ้านี้
                 platform_budgets: scopedPlatformBudgets(project, link), // งบต่อ Platform เฉพาะของเจ้านี้
-                submissions: subs
+                submissions: subs,
+                reports: Array.isArray(link.reports) ? link.reports : []   // Report ที่เจ้านี้ส่งเข้ามาแล้ว
             }
         });
     } catch (err) { next(err); }
@@ -221,6 +239,63 @@ router.get('/:token/platform-brief/:platform/file', async (req, res, next) => {
         const filePath = path.join(UPLOAD_DIR, meta.filename);
         if (!fs.existsSync(filePath)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
         res.sendFile(filePath);
+    } catch (err) { next(err); }
+});
+
+// ---------- Report ที่เอเจนซี่ส่งเข้ามา ----------
+// POST /api/agency/:token/reports — อัปไฟล์ (field "file") หรือส่งลิงก์ ({ url, note })
+router.post('/:token/reports', (req, res, next) => {
+    const isFile = String(req.headers['content-type'] || '').startsWith('multipart/');
+    if (!isFile) return next();
+    reportUpload.single('file')(req, res, err => {
+        if (err) return res.status(400).json({ status: 'error', message: err.message });
+        next();
+    });
+}, async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const { project } = resolved;
+        let meta;
+        if (req.file) {
+            meta = { kind: 'file', original: req.file.originalname, filename: req.file.filename, size: req.file.size };
+        } else {
+            const url = (req.body.url || '').trim();
+            const okUrl = url.toLowerCase().startsWith('http://') || url.toLowerCase().startsWith('https://');
+            if (!okUrl) return res.status(400).json({ status: 'error', message: 'ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://' });
+            meta = { kind: 'link', original: (req.body.note || '').trim() || url, url };
+        }
+        const row = await store.projects.addAgencyReport(project.id, req.params.token, meta);
+        if (!row) return res.status(404).json({ status: 'error', message: 'ไม่พบลิงก์เอเจนซี่' });
+        res.status(201).json({ status: 'success', data: row });
+    } catch (err) { next(err); }
+});
+
+// GET /api/agency/:token/reports/:reportId/file — เปิด/ดาวน์โหลดไฟล์
+router.get('/:token/reports/:reportId/file', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const r = await store.projects.getAgencyReport(resolved.project.id, req.params.token, req.params.reportId);
+        if (!r || r.kind !== 'file') return res.status(404).json({ status: 'error', message: 'ไม่พบไฟล์' });
+        const fp = path.join(UPLOAD_DIR, r.filename);
+        if (!fs.existsSync(fp)) return res.status(404).json({ status: 'error', message: 'ไฟล์หายไป' });
+        res.sendFile(fp);
+    } catch (err) { next(err); }
+});
+
+// DELETE /api/agency/:token/reports/:reportId — เอเจนซี่ลบของตัวเองได้ (เผื่อส่งผิดไฟล์)
+router.delete('/:token/reports/:reportId', async (req, res, next) => {
+    try {
+        const resolved = await store.projects.resolveToken(req.params.token);
+        if (!resolved) return res.status(404).json({ status: 'error', message: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+        const gone = await store.projects.removeAgencyReport(resolved.project.id, req.params.token, req.params.reportId);
+        if (!gone) return res.status(404).json({ status: 'error', message: 'ไม่พบรายการ' });
+        if (gone.kind === 'file' && gone.filename) {
+            const fp = path.join(UPLOAD_DIR, gone.filename);
+            try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch { /* ลบไฟล์ไม่ได้ก็ปล่อย ข้อมูลถูกลบไปแล้ว */ }
+        }
+        res.json({ status: 'success', data: gone });
     } catch (err) { next(err); }
 });
 
