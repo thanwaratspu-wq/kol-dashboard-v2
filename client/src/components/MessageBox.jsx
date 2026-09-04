@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { api, getToken } from '../api/client.js';
 
 // ปกติข้อความใหม่จะเด้งมาทาง SSE ทันที
@@ -21,7 +22,7 @@ const dayLabel = at => {
 
 // รูปในข้อความ — ถ้าโหลดไม่ขึ้นให้ขึ้นชื่อไฟล์ที่กดเปิดได้แทน
 // จะได้ไม่กลายเป็นบับเบิลว่างเปล่าที่ดูไม่ออกว่าเกิดอะไรขึ้น
-function ChatImage({ src, fallbackSrc, name }) {
+function ChatImage({ src, fallbackSrc, name, onOpen }) {
     const [failed, setFailed] = useState(false);
     const [url, setUrl] = useState(src);
     useEffect(() => { setUrl(src); setFailed(false); }, [src]);
@@ -31,11 +32,30 @@ function ChatImage({ src, fallbackSrc, name }) {
         else setFailed(true);
     };
     return (
-        <a className="msgbox-img" href={fallbackSrc || url} target="_blank" rel="noreferrer" title={name}>
+        <button type="button" className="msgbox-img" onClick={() => onOpen(fallbackSrc || url, name)} title={name}>
             {failed
                 ? <span className="msgbox-imgfail">🖼 {name} — กดเพื่อเปิดรูป</span>
                 : <img src={url} alt={name} onError={onErr} />}
-        </a>
+        </button>
+    );
+}
+
+// รูปขยาย — เด้งทับทั้งหน้าจอ กดที่ว่าง / ปุ่ม ✕ / Esc เพื่อปิด
+// ใช้ portal ออกไปที่ body เพราะกล่องแชทมี overflow:hidden กับ animation ครอบอยู่
+function Lightbox({ src, name, onClose }) {
+    useEffect(() => {
+        const onKey = e => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    return createPortal(
+        <div className="lightbox" onClick={onClose} role="dialog" aria-modal="true" aria-label={name}>
+            <button type="button" className="lightbox-x" onClick={onClose} aria-label="ปิด">✕</button>
+            <img src={src} alt={name} onClick={e => e.stopPropagation()} />
+            <span className="lightbox-name">{name}</span>
+        </div>,
+        document.body
     );
 }
 
@@ -63,6 +83,7 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
     const threadRef = useRef(null);
     const stickBottom = useRef(true);
     const loadRef = useRef(null);
+    const [zoomed, setZoomed] = useState(null);   // รูปที่กำลังเปิดขยายอยู่ { src, name }
     const localImgs = useRef(new Map());   // msgId -> object URL ของไฟล์ในเครื่อง (รูปที่เราเพิ่งส่ง)
 
     const load = useCallback(async (markRead) => {
@@ -166,7 +187,8 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                                         <ChatImage
                                             src={localImgs.current.get(m.id) || `/api${imgBase}/${m.id}/image`}
                                             fallbackSrc={`/api${imgBase}/${m.id}/image`}
-                                            name={m.image.original} />
+                                            name={m.image.original}
+                                            onOpen={(src, name) => setZoomed({ src, name })} />
                                     )}
                                     {m.text && <span className="msgbox-text">{m.text}</span>}
                                 </div>
@@ -196,6 +218,8 @@ export default function MessageBox({ base, imageBase, streamPath, side, title, s
                 <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif"
                     onChange={e => setImg(e.target.files[0] || null)} />
             </form>
+
+            {zoomed && <Lightbox src={zoomed.src} name={zoomed.name} onClose={() => setZoomed(null)} />}
         </div>
     );
 }

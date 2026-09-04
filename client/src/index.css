@@ -2031,7 +2031,7 @@ a { text-decoration: none; color: inherit; }
 .msgbox-bubble { padding: 9px 13px; border-radius: 15px; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text); font-size: 13px; line-height: 1.62; border-bottom-left-radius: 5px; }
 .msgbox-msg.mine .msgbox-bubble { background: var(--mint); border-color: var(--mint); color: #fff; border-bottom-left-radius: 15px; border-bottom-right-radius: 5px; }
 .msgbox-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.msgbox-img { display: block; margin-bottom: 6px; }
+.msgbox-img { display: block; margin-bottom: 6px; padding: 0; border: none; background: none; cursor: zoom-in; }
 .msgbox-img:last-child { margin-bottom: 0; }
 .msgbox-img img { display: block; max-width: 240px; max-height: 240px; border-radius: 10px; }
 /* รูปโหลดไม่ขึ้น — ขึ้นชื่อไฟล์ที่กดเปิดได้แทนบับเบิลว่าง */
@@ -2141,3 +2141,25 @@ a { text-decoration: none; color: inherit; }
     .chatdock { inset-inline: 10px; inset-inline-end: 10px; bottom: 10px; }
     .chatdock-panel { width: auto; }
 }
+
+/* ============ รูปขยายเต็มจอ (กดรูปในแชท) ============ */
+.lightbox {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 40px 24px; background: rgba(9, 26, 21, .88); cursor: zoom-out;
+    animation: lbIn .14s ease-out;
+}
+@keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lightbox { animation: none; } }
+.lightbox img {
+    max-width: 100%; max-height: calc(100vh - 130px); object-fit: contain;
+    border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); cursor: default;
+}
+.lightbox-name { color: rgba(255, 255, 255, .82); font-size: 12px; max-width: 90%; text-align: center; overflow-wrap: anywhere; }
+.lightbox-x {
+    position: absolute; top: 16px; inset-inline-end: 18px; width: 38px; height: 38px;
+    border: none; border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff;
+    font-size: 17px; line-height: 1; cursor: pointer;
+}
+.lightbox-x:hover { background: rgba(255, 255, 255, .3); }
+.lightbox-x:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
