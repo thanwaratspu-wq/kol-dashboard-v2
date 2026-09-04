@@ -117,7 +117,9 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
         status: editing?.status || 'Draft'
     });
     const [adGroups, setAdGroups] = useState(() => initGroups(editing));
-    const [platforms, setPlatforms] = useState(() => [...new Set(initGroups(editing).map(g => g.platform).filter(Boolean))]);
+    // Platform ไม่ใช่ state แยกอีกแล้ว — อ่านจากกลุ่มสินค้าที่มีอยู่
+    // (บรีฟหลัก/validate/ตอนบันทึก ยังใช้ตัวแปรชื่อเดิม จึงไม่ต้องแก้ที่อื่น)
+    const platforms = [...new Set(adGroups.map(g => g.platform).filter(Boolean))];
     const [briefFile, setBriefFile] = useState(null);
     const [productBriefs, setProductBriefs] = useState(() => editing?.product_briefs || {}); // { code: { link, file } }
     const [pbFiles, setPbFiles] = useState({}); // code -> File (รออัปโหลดหลังบันทึก)
@@ -133,16 +135,8 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
 
     function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
-    // Platform ชั้นบน
-    // เลือก Platform แล้วสร้างกลุ่มสินค้าแรกให้เลย ไม่ต้องกดเพิ่มเอง
-    // (ปุ่ม "เพิ่มกลุ่มสินค้า" ไว้ใช้ตอนอยากได้กลุ่มที่ 2 ขึ้นไป)
-    const addPlatform = p => {
-        if (!p) return;
-        setPlatforms(ps => ps.includes(p) ? ps : [...ps, p]);
-        setAdGroups(g => g.some(x => x.platform === p) ? g : [...g, newGroup({ platform: p })]);
-    };
-    const removePlatform = p => { setPlatforms(ps => ps.filter(x => x !== p)); setAdGroups(g => g.filter(x => x.platform !== p)); };
-    const addGroupToPlatform = p => setAdGroups(g => [...g, newGroup({ platform: p })]);
+    // เริ่มจากกลุ่มสินค้า แล้วค่อยเลือก Platform ในหัวกลุ่ม
+    const addGroup = () => setAdGroups(g => [...g, newGroup()]);
     const addAllocation = i => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: [...x.allocations, emptyAlloc()] } : x));
     const removeAllocation = (i, ai) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: x.allocations.length > 1 ? x.allocations.filter((_, j) => j !== ai) : x.allocations } : x));
     const setAllocation = (i, ai, k, v) => setAdGroups(g => g.map((x, idx) => idx === i ? { ...x, allocations: x.allocations.map((a, j) => j === ai ? { ...a, [k]: v } : a) } : x));
@@ -178,7 +172,7 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
             g.platform && g.products.length && g.content_type &&
             (targetsForProducts(g.products).length === 0 || asTargetArray(g.target).length > 0) &&
             g.allocations.length > 0 && g.allocations.every(a => a.tier && (Number(a.kols) || 0) > 0));
-        if (!groupsOk) m.push('เลือก Platform + เพิ่มกลุ่มสินค้า (สินค้า/Target/Content Type + ทุกแถว Tier/จำนวน KOL ให้ครบ)');
+        if (!groupsOk) m.push('กลุ่มสินค้า (Platform/สินค้า/Target/Content Type + ทุกแถว Tier/จำนวน KOL ให้ครบ)');
         if (!form.owner) m.push('Project Owner');
         if (!(adGroups.length > 0 && adGroups.every(g => Number(String(g.budget).replace(/\D/g, '')) > 0))) m.push('Budget ของแต่ละกลุ่มสินค้า');
         if (!form.start_date) m.push('วันเริ่ม (Start)');
@@ -298,155 +292,145 @@ export default function ProjectForm({ editing, onClose, onSaved }) {
 
                     {/* สินค้า & กลุ่มโฆษณา — Platform ชั้นบน (มีบรีฟหลักต่อ Platform) */}
                     <div className="field">
-                        <label>สินค้า &amp; กลุ่มโฆษณา <span className="dash-section-sub">เลือก Platform แล้วกลุ่มสินค้าแรกจะขึ้นให้เอง กดเพิ่มได้ถ้าต้องการหลายกลุ่ม</span></label>
+                        <label>สินค้า &amp; กลุ่มโฆษณา <span className="dash-section-sub">กด “เพิ่มกลุ่มสินค้า” แล้วเลือก Platform ในหัวกลุ่ม เพิ่มได้หลายกลุ่ม</span></label>
                         <div className="adgroup-editor">
-                            {platforms.length === 0 && <p className="dash-section-sub" style={{ padding: '4px 2px' }}>เลือก Platform ด้านล่างก่อน</p>}
-                            {platforms.map(pf => (
-                                <div className="platform-block" key={pf}>
-                                    <div className="platform-block-head">
-                                        <span className="platform-block-name">📱 {pf}</span>
-                                        <button type="button" className="adgroup-rm" title="ลบ Platform นี้" onClick={() => removePlatform(pf)}>×</button>
-                                    </div>
-                                    {/* บรีฟหลักของ Platform นี้ (ลิงก์ หรือ ไฟล์) */}
-                                    {(() => {
-                                        const cur = platformBriefs[pf] || {};
-                                        const pendingFile = pfBriefFiles[pf];
-                                        return (
-                                            <div className="platform-brief">
-                                                <span className="platform-brief-lbl">📄 บรีฟหลักของ {pf}</span>
-                                                <div className="pbrief-row">
-                                                    <input className="pbrief-link" type="url" value={cur.link || ''} onChange={e => setPfBriefLink(pf, e.target.value)}
-                                                        placeholder="ลิงก์บรีฟ (https://...)" disabled={!!pendingFile} />
-                                                    <label className={'pbrief-file-btn' + ((pendingFile || cur.file) ? ' has-file' : '')}>
-                                                        <Icon name="upload" size={14} /> {pendingFile ? pendingFile.name : (cur.file ? cur.file.original : 'อัปไฟล์')}
-                                                        <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx"
-                                                            onChange={e => { if (e.target.files[0]) setPfBriefFile(pf, e.target.files[0]); }} />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-                                    {adGroups.map((g, i) => {
-                                        if (g.platform !== pf) return null;
-                                        const gTargets = targetsForProducts(g.products);
-                                        const gTargetSel = asTargetArray(g.target);
-                                        const targetOpts = [...new Set([...gTargets, ...gTargetSel])];
-                                        const targetAvail = targetOpts.filter(t => !gTargetSel.includes(t));
-                                        const gNo = adGroups.filter((x, xi) => x.platform === pf && xi <= i).length;
-                                        return (
-                                        <div className="adgroup-block" key={g.key || i}>
-                                            <div className="adgroup-head">
-                                                <span className="adgroup-no">กลุ่มที่ {gNo}</span>
-                                                <input className="adgroup-concept" value={g.concept} placeholder="Concept ของกลุ่ม..."
-                                                    onChange={e => setGroupField(i, 'concept', e.target.value)} />
-                                                <button type="button" className="adgroup-rm" title="ลบกลุ่ม" onClick={() => removeGroup(i)}>×</button>
-                                            </div>
-                                            <CheckMultiSelect
-                                                disabled={!form.brand}
-                                                disabledText="— เลือกแบรนด์ก่อน —"
-                                                placeholder="+ เลือกสินค้า"
-                                                emptyText="ไม่มีสินค้าในแบรนด์นี้"
-                                                allLabel="ทุกสินค้า"
-                                                options={productsByBrand(form.brand).map(p => ({ value: p.code, label: `${p.code} - ${p.name}` }))}
-                                                selected={g.products}
-                                                onToggle={code => toggleProductInGroup(i, code)}
-                                            />
-                                            {g.products.length > 0 && (
-                                                <div className="prodchip-wrap" style={{ marginBottom: 8 }}>
-                                                    {g.products.map(code => (
-                                                        <span className="prodchip removable" key={code} title={productLabel(code)}>
-                                                            {code}<button type="button" onClick={() => removeProductFromGroup(i, code)} title="เอาออก">×</button>
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {/* กลุ่ม Target — เลือกได้หลายอัน (ชิปที่เลือกขึ้นด้านล่างช่องเลือก) */}
-                                            <div className="target-multi">
-                                                <CheckMultiSelect
-                                                    disabled={g.products.length === 0 || targetOpts.length === 0}
-                                                    disabledText={g.products.length === 0 ? '— เลือกสินค้าก่อน —' : '— สินค้านี้ยังไม่มี Target —'}
-                                                    placeholder="+ เลือกกลุ่ม Target"
-                                                    emptyText="สินค้านี้ยังไม่มี Target"
-                                                    options={targetOpts.map(t => ({ value: t, label: t }))}
-                                                    selected={gTargetSel}
-                                                    onToggle={t => toggleTargetInGroup(i, t)}
-                                                />
-                                                {gTargetSel.length > 0 && (
-                                                    <div className="chip-list target-chips">
-                                                        {gTargetSel.map(t => (
-                                                            <span className="chip-target lg" key={t}>🎯 {t}
-                                                                <button type="button" onClick={() => removeTargetFromGroup(i, t)}>×</button>
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="target-multi ctype-row">
-                                                <select className="target-add" value={g.content_type} onChange={e => setGroupField(i, 'content_type', e.target.value)}>
-                                                    <option value="">— Content Type —</option>
-                                                    {CONTENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                                <select className="target-add" value={g.media_type} onChange={e => setGroupField(i, 'media_type', e.target.value)}>
-                                                    <option value="">— Photo / VDO —</option>
-                                                    {MEDIA_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                                <MultiSelect value={g.content_format} options={CONTENT_FORMATS}
-                                                    onChange={v => setGroupField(i, 'content_format', v)}
-                                                    placeholder="— Content Format —" itemName="Content Format" />
-                                            </div>
-                                            {/* จำนวนวัน Gencode (โค้ดใช้ได้กี่วัน) */}
-                                            <label className="platform-budget platform-budget-row">
-                                                <span>⏳ จำนวนวัน Gencode</span>
-                                                <select value={g.code_expire || 60} onChange={e => setGroupField(i, 'code_expire', Number(e.target.value))}>
-                                                    {CODE_EXPIRE_OPTS.map(d => <option key={d} value={d}>{d} Days</option>)}
-                                                </select>
-                                            </label>
-                                            {/* บรีฟเฉพาะกลุ่มนี้ */}
-                                            <div className="target-multi">
-                                                <input className="target-add" type="url" value={g.brief} onChange={e => setGroupField(i, 'brief', e.target.value)}
-                                                    placeholder="📄 บรีฟเฉพาะกลุ่มนี้ (ลิงก์ https://...) — เว้นว่างได้ถ้าใช้บรีฟหลัก" />
-                                            </div>
-                                            {/* งบของกลุ่มสินค้านี้ */}
-                                            <label className="platform-budget platform-budget-row">
-                                                <span>💰 Budget กลุ่มนี้</span>
-                                                <input type="text" inputMode="numeric"
-                                                    value={(g.budget != null && g.budget !== '') ? Number(String(g.budget).replace(/\D/g, '') || 0).toLocaleString('en-US') : ''}
-                                                    onChange={e => setGroupField(i, 'budget', e.target.value.replace(/\D/g, ''))}
-                                                    placeholder="0" />
-                                                <span className="pb-baht">฿</span>
-                                            </label>
-
-                                            {/* Tier · จำนวน KOL (Platform มาจากด้านบนแล้ว) */}
-                                            <div className="alloc-section">
-                                                <div className="alloc-head alloc-head-2"><span>Tier</span><span>จำนวน KOL</span><span /></div>
-                                                {g.allocations.map((a, ai) => (
-                                                    <div className="alloc-row alloc-row-2" key={ai}>
-                                                        <select value={a.tier} onChange={e => setAllocation(i, ai, 'tier', e.target.value)}>
-                                                            <option value="">— Tier —</option>
-                                                            {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
-                                                        </select>
-                                                        <input type="number" min="0" placeholder="0" value={a.kols} onChange={e => setAllocation(i, ai, 'kols', e.target.value)} />
-                                                        <button type="button" className="alloc-rm" title="ลบแถว" onClick={() => removeAllocation(i, ai)}>×</button>
-                                                    </div>
-                                                ))}
-                                                <button type="button" className="alloc-add" onClick={() => addAllocation(i)}>
-                                                    <Icon name="plus" size={14} /> เพิ่ม Tier / จำนวน
-                                                </button>
-                                            </div>
-                                        </div>
-                                        );
-                                    })}
-                                    <button type="button" className="adgroup-add" onClick={() => addGroupToPlatform(pf)}>
-                                        <Icon name="plus" size={15} /> เพิ่มกลุ่มสินค้า
-                                    </button>
-                                </div>
-                            ))}
-                            {GROUP_PLATFORMS.filter(p => !platforms.includes(p)).length > 0 && (
-                                <select className="product-picker platform-picker" value="" onChange={e => { addPlatform(e.target.value); e.target.value = ''; }}>
-                                    <option value="">{platforms.length ? '+ เลือก Platform เพิ่ม' : '+ เลือก Platform'}</option>
-                                    {GROUP_PLATFORMS.filter(p => !platforms.includes(p)).map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
+                            {adGroups.length === 0 && (
+                                <p className="dash-section-sub" style={{ padding: '4px 2px' }}>ยังไม่มีกลุ่มสินค้า — กดปุ่มด้านล่างเพื่อเริ่ม</p>
                             )}
+                            {adGroups.map((g, i) => {
+                                const gTargets = targetsForProducts(g.products);
+                                const gTargetSel = asTargetArray(g.target);
+                                const targetOpts = [...new Set([...gTargets, ...gTargetSel])];
+                                return (
+                                <div className="adgroup-block" key={g.key || i}>
+                                    <div className="adgroup-head">
+                                        <span className="adgroup-no">กลุ่มที่ {i + 1}</span>
+                                        <select className={'adgroup-platform' + (g.platform ? '' : ' empty')} value={g.platform} onChange={e => setGroupField(i, 'platform', e.target.value)}>
+                                            <option value="">— เลือก Platform —</option>
+                                            {GROUP_PLATFORMS.map(pf => <option key={pf} value={pf}>{pf}</option>)}
+                                        </select>
+                                        <input className="adgroup-concept" value={g.concept} placeholder="Concept ของกลุ่ม..."
+                                            onChange={e => setGroupField(i, 'concept', e.target.value)} />
+                                        <button type="button" className="adgroup-rm" title="ลบกลุ่ม" onClick={() => removeGroup(i)}>×</button>
+                                    </div>
+                                    <CheckMultiSelect
+                                        disabled={!form.brand}
+                                        disabledText="— เลือกแบรนด์ก่อน —"
+                                        placeholder="+ เลือกสินค้า"
+                                        emptyText="ไม่มีสินค้าในแบรนด์นี้"
+                                        allLabel="ทุกสินค้า"
+                                        options={productsByBrand(form.brand).map(p => ({ value: p.code, label: `${p.code} - ${p.name}` }))}
+                                        selected={g.products}
+                                        onToggle={code => toggleProductInGroup(i, code)}
+                                    />
+                                    {g.products.length > 0 && (
+                                        <div className="prodchip-wrap" style={{ marginBottom: 8 }}>
+                                            {g.products.map(code => (
+                                                <span className="prodchip removable" key={code} title={productLabel(code)}>
+                                                    {code}<button type="button" onClick={() => removeProductFromGroup(i, code)} title="เอาออก">×</button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* กลุ่ม Target — เลือกได้หลายอัน (ชิปที่เลือกขึ้นด้านล่างช่องเลือก) */}
+                                    <div className="target-multi">
+                                        <CheckMultiSelect
+                                            disabled={g.products.length === 0 || targetOpts.length === 0}
+                                            disabledText={g.products.length === 0 ? '— เลือกสินค้าก่อน —' : '— สินค้านี้ยังไม่มี Target —'}
+                                            placeholder="+ เลือกกลุ่ม Target"
+                                            emptyText="สินค้านี้ยังไม่มี Target"
+                                            options={targetOpts.map(t => ({ value: t, label: t }))}
+                                            selected={gTargetSel}
+                                            onToggle={t => toggleTargetInGroup(i, t)}
+                                        />
+                                        {gTargetSel.length > 0 && (
+                                            <div className="chip-list target-chips">
+                                                {gTargetSel.map(t => (
+                                                    <span className="chip-target lg" key={t}>🎯 {t}
+                                                        <button type="button" onClick={() => removeTargetFromGroup(i, t)}>×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="target-multi ctype-row">
+                                        <select className="target-add" value={g.content_type} onChange={e => setGroupField(i, 'content_type', e.target.value)}>
+                                            <option value="">— Content Type —</option>
+                                            {CONTENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                        <select className="target-add" value={g.media_type} onChange={e => setGroupField(i, 'media_type', e.target.value)}>
+                                            <option value="">— Photo / VDO —</option>
+                                            {MEDIA_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                        <MultiSelect value={g.content_format} options={CONTENT_FORMATS}
+                                            onChange={v => setGroupField(i, 'content_format', v)}
+                                            placeholder="— Content Format —" itemName="Content Format" />
+                                    </div>
+                                    {/* จำนวนวัน Gencode (โค้ดใช้ได้กี่วัน) */}
+                                    <label className="platform-budget platform-budget-row">
+                                        <span>⏳ จำนวนวัน Gencode</span>
+                                        <select value={g.code_expire || 60} onChange={e => setGroupField(i, 'code_expire', Number(e.target.value))}>
+                                            {CODE_EXPIRE_OPTS.map(d => <option key={d} value={d}>{d} Days</option>)}
+                                        </select>
+                                    </label>
+                                    {/* บรีฟเฉพาะกลุ่มนี้ */}
+                                    <div className="target-multi">
+                                        <input className="target-add" type="url" value={g.brief} onChange={e => setGroupField(i, 'brief', e.target.value)}
+                                            placeholder="📄 บรีฟเฉพาะกลุ่มนี้ (ลิงก์ https://...) — เว้นว่างได้ถ้าใช้บรีฟหลัก" />
+                                    </div>
+                                    {/* งบของกลุ่มสินค้านี้ */}
+                                    <label className="platform-budget platform-budget-row">
+                                        <span>💰 Budget กลุ่มนี้</span>
+                                        <input type="text" inputMode="numeric"
+                                            value={(g.budget != null && g.budget !== '') ? Number(String(g.budget).replace(/\D/g, '') || 0).toLocaleString('en-US') : ''}
+                                            onChange={e => setGroupField(i, 'budget', e.target.value.replace(/\D/g, ''))}
+                                            placeholder="0" />
+                                        <span className="pb-baht">฿</span>
+                                    </label>
+
+                                    {/* Tier · จำนวน KOL (Platform มาจากด้านบนแล้ว) */}
+                                    <div className="alloc-section">
+                                        <div className="alloc-head alloc-head-2"><span>Tier</span><span>จำนวน KOL</span><span /></div>
+                                        {g.allocations.map((a, ai) => (
+                                            <div className="alloc-row alloc-row-2" key={ai}>
+                                                <select value={a.tier} onChange={e => setAllocation(i, ai, 'tier', e.target.value)}>
+                                                    <option value="">— Tier —</option>
+                                                    {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                                                </select>
+                                                <input type="number" min="0" placeholder="0" value={a.kols} onChange={e => setAllocation(i, ai, 'kols', e.target.value)} />
+                                                <button type="button" className="alloc-rm" title="ลบแถว" onClick={() => removeAllocation(i, ai)}>×</button>
+                                            </div>
+                                        ))}
+                                        <button type="button" className="alloc-add" onClick={() => addAllocation(i)}>
+                                            <Icon name="plus" size={14} /> เพิ่ม Tier / จำนวน
+                                        </button>
+                                    </div>
+                                </div>
+                                );
+                            })}
+                            <button type="button" className="adgroup-add" onClick={addGroup}>
+                                <Icon name="plus" size={15} /> เพิ่มกลุ่มสินค้า
+                            </button>
+
+                            {/* บรีฟหลัก — ขึ้นตาม Platform ที่กลุ่มสินค้าเลือกไว้ */}
+                            {platforms.map(pf => {
+                                const cur = platformBriefs[pf] || {};
+                                const pendingFile = pfBriefFiles[pf];
+                                return (
+                                    <div className="platform-brief" key={pf}>
+                                        <span className="platform-brief-lbl">📄 บรีฟหลักของ {pf}</span>
+                                        <div className="pbrief-row">
+                                            <input className="pbrief-link" type="url" value={cur.link || ''} onChange={e => setPfBriefLink(pf, e.target.value)}
+                                                placeholder="ลิงก์บรีฟ (https://...)" disabled={!!pendingFile} />
+                                            <label className={'pbrief-file-btn' + ((pendingFile || cur.file) ? ' has-file' : '')}>
+                                                <Icon name="upload" size={14} /> {pendingFile ? pendingFile.name : (cur.file ? cur.file.original : 'อัปไฟล์')}
+                                                <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx"
+                                                    onChange={e => { if (e.target.files[0]) setPfBriefFile(pf, e.target.files[0]); }} />
+                                            </label>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
