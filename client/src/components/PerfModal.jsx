@@ -5,14 +5,17 @@ import { api } from '../api/client.js';
 
 
 /**
- * โมดัลกรอกผลงานคอนเทนต์ (Views/Engagement) — กรอกมือ หรือกด "ดึงจาก TikTok"
+ * โมดัลกรอกผลงานคอนเทนต์ (Views/Engagement)
  * props:
  *   sub          = submission
- *   fetchUrl     = endpoint สำหรับดึงจาก TikTok (เช่น `/ads/${sub.id}/fetch-tiktok` หรือ team route)
+ *   fetchUrl     = endpoint ดึงจาก TikTok (เช่น `/ads/${sub.id}/fetch-tiktok` หรือ team route)
+ *                  ปุ่มดึงอัตโนมัติขึ้นเฉพาะ TikTok — แพลตฟอร์มอื่นยังไม่มี API ให้ดึง จึงกรอกมืออย่างเดียว
  *   onSave(payload) = async ผู้เรียกยิง API เอง
  *   onClose()
  */
 export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
+    // ดึงอัตโนมัติได้เฉพาะ TikTok — FB/IG/อื่น ๆ ยังไม่มีทางดึง ต้องกรอกมือ
+    const canFetch = sub.platform === "TikTok";
     const [f, setF] = useState({
         views: sub.views || '', likes: sub.likes || '', comments: sub.comments || '',
         saves: sub.saves || '', shares: sub.shares || ''
@@ -60,9 +63,15 @@ export default function PerfModal({ sub, fetchUrl, onSave, onClose }) {
                 <div className="draft-head">
                     <div className="draft-name">📊 ผลงานคอนเทนต์ · {sub.account_name} <span className="muted">· {sub.platform || '—'}</span></div>
                 </div>
-                <button type="button" className="perf-fetch-btn" onClick={fetchTikTok} disabled={fetching}>
-                    <Icon name="target" size={15} /> {fetching ? 'กำลังดึง...' : 'ดึงจาก TikTok อัตโนมัติ'}
-                </button>
+                {canFetch ? (
+                    <button type="button" className="perf-fetch-btn" onClick={fetchTikTok} disabled={fetching}>
+                        <Icon name="target" size={15} /> {fetching ? 'กำลังดึง...' : 'ดึงจาก TikTok อัตโนมัติ'}
+                    </button>
+                ) : (
+                    <div className="perf-manual-note">
+                        ✍️ {sub.platform || "แพลตฟอร์มนี้"} ยังไม่มีช่องทางดึงตัวเลขอัตโนมัติ — กรอกจากหน้า Insights ของโพสต์เอง
+                    </div>
+                )}
                 {msg && <div className="perf-msg">{msg}</div>}
 
                 <div className="field"><label>Views (ยอดวิว)</label><input inputMode="numeric" value={f.views} onChange={e => up('views', e.target.value.replace(/\D/g, ''))} placeholder="0" /></div>
